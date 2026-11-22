@@ -1,5 +1,13 @@
 import { expect, test } from 'bun:test'
-import { bar, clock, compact, countdown, providerLabel, remaining } from '../src/hold.ts'
+import {
+  bar,
+  clock,
+  compact,
+  countdown,
+  countdownField,
+  providerLabel,
+  remaining,
+} from '../src/hold.ts'
 
 const at = (day, hour, minute) => new Date(2026, 10, day, hour, minute, 0, 0).getTime()
 
@@ -58,4 +66,13 @@ test('providerLabel names the subscription behind the provider id', () => {
   expect(providerLabel('openai')).toBe('ChatGPT')
   expect(providerLabel('opencode-go')).toBe('OpenCode Go')
   expect(providerLabel('local')).toBeUndefined()
+})
+
+test('the countdown field keeps the rail and the label in one column', () => {
+  for (const seconds of [1, 59, 60, 599, 600, 1344, 3599, 3600, 5400, 86_399, 86_400, 90_000]) {
+    expect(countdownField(seconds)).toHaveLength(8)
+  }
+  expect(countdownField(0)).toBe('resetting…')
+  expect(countdownField(1344)).toBe('22m 24s ')
+  expect(countdownField(9000)).toBe('2h 30m  ')
 })

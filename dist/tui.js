@@ -36,6 +36,10 @@ function compact(seconds) {
   }
   return `${seconds}s`
 }
+function countdownField(seconds) {
+  const text = seconds === 0 ? 'resetting\u2026' : countdown(seconds)
+  return text.length >= 8 ? text : text.padEnd(8)
+}
 function clock(until, now) {
   const at = new Date(until)
   const time = `${pad(at.getHours())}:${pad(at.getMinutes())}`
@@ -149,7 +153,11 @@ function useNow() {
 function useHold(context, sessionID) {
   const [hold, setHold] = createSignal()
   const rpc = context.client.rpc(Definition)
+  let turn = 0
+  let asked = 0
+  let askedAt = 0
   const load = (id) => {
+    const current = ++turn
     const directory = context.data.session.get(id)?.location.directory
     rpc
       .get(
@@ -166,7 +174,7 @@ function useHold(context, sessionID) {
       )
       .then(
         (next) => {
-          if (sessionID() === id) {
+          if (current === turn && sessionID() === id) {
             setHold(isHoldState(next) ? next : undefined)
           }
         },
@@ -174,6 +182,15 @@ function useHold(context, sessionID) {
           return
         },
       )
+  }
+  const refresh = (id, until) => {
+    const at = Date.now()
+    if (asked === until && at - askedAt < 30000) {
+      return
+    }
+    asked = until
+    askedAt = at
+    load(id)
   }
   onCleanup(
     rpc.events.on('changed', (event) => {
@@ -194,6 +211,7 @@ function useHold(context, sessionID) {
   createEffect(
     on(sessionID, (id) => {
       setHold(undefined)
+      asked = 0
       if (id) {
         load(id)
       }
@@ -201,18 +219,18 @@ function useHold(context, sessionID) {
   )
   return {
     hold,
-    load,
+    refresh,
   }
 }
 function Panel(props) {
-  const { hold, load } = useHold(props.context, () => props.sessionID)
+  const { hold, refresh } = useHold(props.context, () => props.sessionID)
   const now = useNow()
   const theme = props.context.theme
   const warning = theme.text.feedback.warning.base
   createEffect(() => {
     const current = hold()
     if (current && now() >= current.until) {
-      load(props.sessionID)
+      refresh(props.sessionID, current.until)
     }
   })
   return _$createComponent(Show, {
@@ -223,25 +241,25 @@ function Panel(props) {
       const seconds = () => remaining(current().until, now())
       const cells = () => bar(CELLS, current().since, current().until, now())
       const provider = () => providerLabel(current().providerID)
-      const last = () => (seconds() === 0 ? 'resetting\u2026' : countdown(seconds()))
       return (() => {
         var _el$ = _$createElement('box'),
           _el$2 = _$createElement('text'),
           _el$3 = _$createElement('span'),
           _el$5 = _$createElement('span'),
-          _el$6 = _$createElement('span'),
+          _el$6 = _$createTextNode(`left  `),
           _el$7 = _$createElement('span'),
-          _el$8 = _$createElement('text'),
-          _el$9 = _$createElement('span'),
-          _el$1 = _$createElement('span'),
-          _el$11 = _$createElement('text'),
-          _el$12 = _$createElement('span'),
-          _el$14 = _$createTextNode(
+          _el$8 = _$createElement('span'),
+          _el$9 = _$createElement('text'),
+          _el$0 = _$createElement('span'),
+          _el$10 = _$createElement('span'),
+          _el$12 = _$createElement('text'),
+          _el$13 = _$createElement('span'),
+          _el$15 = _$createTextNode(
             `then the same turn continues \xB7 a new message or Esc takes over`,
           )
         _$insertNode(_el$, _el$2)
-        _$insertNode(_el$, _el$8)
-        _$insertNode(_el$, _el$11)
+        _$insertNode(_el$, _el$9)
+        _$insertNode(_el$, _el$12)
         _$setProp(_el$, 'flexDirection', 'column')
         _$setProp(_el$, 'flexShrink', 0)
         _$setProp(_el$, 'paddingLeft', 3)
@@ -250,6 +268,7 @@ function Panel(props) {
         _$insertNode(_el$2, _el$5)
         _$insertNode(_el$2, _el$6)
         _$insertNode(_el$2, _el$7)
+        _$insertNode(_el$2, _el$8)
         _$setProp(_el$2, 'fg', warning)
         _$insertNode(_el$3, _$createTextNode(`\u258C `))
         _$setProp(_el$3, 'style', {
@@ -258,36 +277,35 @@ function Panel(props) {
         _$setProp(_el$5, 'style', {
           fg: warning,
         })
-        _$insert(_el$5, last)
-        _$insert(_el$2, () => `${' '.repeat(Math.max(1, 7 - last().length))}left  `, _el$6)
-        _$setProp(_el$6, 'style', {
+        _$insert(_el$5, () => countdownField(seconds()))
+        _$setProp(_el$7, 'style', {
           fg: warning,
         })
-        _$insert(_el$6, () => '\u2501'.repeat(cells().filled))
-        _$insert(_el$7, () => '\u2501'.repeat(cells().empty))
-        _$insertNode(_el$8, _el$9)
-        _$insertNode(_el$8, _el$1)
-        _$insertNode(_el$9, _$createTextNode(`\u258C `))
-        _$setProp(_el$9, 'style', {
+        _$insert(_el$7, () => '\u2501'.repeat(cells().filled))
+        _$insert(_el$8, () => '\u2501'.repeat(cells().empty))
+        _$insertNode(_el$9, _el$0)
+        _$insertNode(_el$9, _el$10)
+        _$insertNode(_el$0, _$createTextNode(`\u258C `))
+        _$setProp(_el$0, 'style', {
           fg: warning,
         })
-        _$insertNode(_el$1, _$createTextNode(`wsb`))
-        _$setProp(_el$1, 'style', {
+        _$insertNode(_el$10, _$createTextNode(`wsb`))
+        _$setProp(_el$10, 'style', {
           fg: warning,
         })
-        _$insert(_el$8, () => ` holds this turn until ${clock(current().until, now())}`, null)
+        _$insert(_el$9, () => ` holds this turn until ${clock(current().until, now())}`, null)
         _$insert(
-          _el$8,
+          _el$9,
           (() => {
             var _c$ = _$memo(() => !!provider())
             return () => (_c$() ? ` \xB7 ${provider()}` : '')
           })(),
           null,
         )
-        _$insertNode(_el$11, _el$12)
-        _$insertNode(_el$11, _el$14)
-        _$insertNode(_el$12, _$createTextNode(`\u258C `))
-        _$setProp(_el$12, 'style', {
+        _$insertNode(_el$12, _el$13)
+        _$insertNode(_el$12, _el$15)
+        _$insertNode(_el$13, _$createTextNode(`\u258C `))
+        _$setProp(_el$13, 'style', {
           fg: warning,
         })
         _$effect(
@@ -297,9 +315,9 @@ function Panel(props) {
               },
               _v$2 = theme.text.muted,
               _v$3 = theme.text.muted
-            _v$ !== _p$.e && (_p$.e = _$setProp(_el$7, 'style', _v$, _p$.e))
-            _v$2 !== _p$.t && (_p$.t = _$setProp(_el$8, 'fg', _v$2, _p$.t))
-            _v$3 !== _p$.a && (_p$.a = _$setProp(_el$11, 'fg', _v$3, _p$.a))
+            _v$ !== _p$.e && (_p$.e = _$setProp(_el$8, 'style', _v$, _p$.e))
+            _v$2 !== _p$.t && (_p$.t = _$setProp(_el$9, 'fg', _v$2, _p$.t))
+            _v$3 !== _p$.a && (_p$.a = _$setProp(_el$12, 'fg', _v$3, _p$.a))
             return _p$
           },
           {
@@ -314,13 +332,13 @@ function Panel(props) {
   })
 }
 function Status(props) {
-  const { hold, load } = useHold(props.context, () => props.sessionID)
+  const { hold, refresh } = useHold(props.context, () => props.sessionID)
   const now = useNow()
   createEffect(() => {
     const current = hold()
     const id = props.sessionID
     if (current && id && now() >= current.until) {
-      load(id)
+      refresh(id, current.until)
     }
   })
   return _$createComponent(Show, {
@@ -329,13 +347,13 @@ function Status(props) {
     },
     children: (current) =>
       (() => {
-        var _el$15 = _$createElement('text')
-        _$setProp(_el$15, 'flexShrink', 0)
-        _$insert(_el$15, () => `wsb ${compact(remaining(current().until, now()))}`)
+        var _el$16 = _$createElement('text')
+        _$setProp(_el$16, 'flexShrink', 0)
+        _$insert(_el$16, () => `wsb ${compact(remaining(current().until, now()))}`)
         _$effect((_$p) =>
-          _$setProp(_el$15, 'fg', props.context.theme.text.feedback.warning.base, _$p),
+          _$setProp(_el$16, 'fg', props.context.theme.text.feedback.warning.base, _$p),
         )
-        return _el$15
+        return _el$16
       })(),
   })
 }

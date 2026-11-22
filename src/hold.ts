@@ -39,6 +39,11 @@ export function compact(seconds: number): string {
   return `${seconds}s`
 }
 
+export function countdownField(seconds: number): string {
+  const text = seconds === 0 ? 'resetting…' : countdown(seconds)
+  return text.length >= 8 ? text : text.padEnd(8)
+}
+
 export function clock(until: number, now: number): string {
   const at = new Date(until)
   const time = `${pad(at.getHours())}:${pad(at.getMinutes())}`

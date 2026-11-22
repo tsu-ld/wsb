@@ -1,6 +1,6 @@
 import type { Plugin } from '@opencode/plugin/tui'
 import { createEffect, createSignal, on, onCleanup, Show } from 'solid-js'
-import { bar, clock, compact, countdown, providerLabel, remaining } from './hold.ts'
+import { bar, clock, compact, countdownField, providerLabel, remaining } from './hold.ts'
 import { Definition, changedSession, isHoldState } from './rpc.ts'
 import type { HoldState } from './rpc.ts'
 
@@ -16,16 +16,29 @@ function useNow() {
 function useHold(context: Plugin.Context, sessionID: () => string | undefined) {
   const [hold, setHold] = createSignal<HoldState>()
   const rpc = context.client.rpc(Definition)
+  let turn = 0
+  let asked = 0
+  let askedAt = 0
   const load = (id: string) => {
+    const current = ++turn
     const directory = context.data.session.get(id)?.location.directory
     void rpc.get({ sessionID: id }, directory ? { location: { directory } } : undefined).then(
       (next) => {
-        if (sessionID() === id) {
+        if (current === turn && sessionID() === id) {
           setHold(isHoldState(next) ? next : undefined)
         }
       },
       () => undefined,
     )
+  }
+  const refresh = (id: string, until: number) => {
+    const at = Date.now()
+    if (asked === until && at - askedAt < 30_000) {
+      return
+    }
+    asked = until
+    askedAt = at
+    load(id)
   }
   onCleanup(
     rpc.events.on('changed', (event) => {
@@ -46,16 +59,17 @@ function useHold(context: Plugin.Context, sessionID: () => string | undefined) {
   createEffect(
     on(sessionID, (id) => {
       setHold(undefined)
+      asked = 0
       if (id) {
         load(id)
       }
     }),
   )
-  return { hold, load }
+  return { hold, refresh }
 }
 
 function Panel(props: { context: Plugin.Context; sessionID: string }) {
-  const { hold, load } = useHold(props.context, () => props.sessionID)
+  const { hold, refresh } = useHold(props.context, () => props.sessionID)
   const now = useNow()
   const theme = props.context.theme
   const warning = theme.text.feedback.warning.base
@@ -63,7 +77,7 @@ function Panel(props: { context: Plugin.Context; sessionID: string }) {
   createEffect(() => {
     const current = hold()
     if (current && now() >= current.until) {
-      load(props.sessionID)
+      refresh(props.sessionID, current.until)
     }
   })
 
@@ -73,13 +87,12 @@ function Panel(props: { context: Plugin.Context; sessionID: string }) {
         const seconds = () => remaining(current().until, now())
         const cells = () => bar(CELLS, current().since, current().until, now())
         const provider = () => providerLabel(current().providerID)
-        const last = () => (seconds() === 0 ? 'resetting…' : countdown(seconds()))
         return (
           <box flexDirection="column" flexShrink={0} paddingLeft={3} paddingTop={1}>
             <text fg={warning}>
               <span style={{ fg: warning }}>▌ </span>
-              <span style={{ fg: warning }}>{last()}</span>
-              {`${' '.repeat(Math.max(1, 7 - last().length))}left  `}
+              <span style={{ fg: warning }}>{countdownField(seconds())}</span>
+              {'left  '}
               <span style={{ fg: warning }}>{'━'.repeat(cells().filled)}</span>
               <span style={{ fg: theme.text.muted }}>{'━'.repeat(cells().empty)}</span>
             </text>
@@ -101,14 +114,14 @@ function Panel(props: { context: Plugin.Context; sessionID: string }) {
 }
 
 function Status(props: { context: Plugin.Context; sessionID: string | undefined }) {
-  const { hold, load } = useHold(props.context, () => props.sessionID)
+  const { hold, refresh } = useHold(props.context, () => props.sessionID)
   const now = useNow()
 
   createEffect(() => {
     const current = hold()
     const id = props.sessionID
     if (current && id && now() >= current.until) {
-      load(id)
+      refresh(id, current.until)
     }
   })
 

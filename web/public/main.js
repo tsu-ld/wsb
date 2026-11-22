@@ -118,18 +118,9 @@ if (gl && !software) {
     ]),
   )
   let glow = [0, 0]
-  const resize = () => {
-    const scale = Math.min(devicePixelRatio || 1, 2) * 0.5
-    canvas.width = Math.round(innerWidth * scale)
-    canvas.height = Math.round(innerHeight * scale)
-    gl.viewport(0, 0, canvas.width, canvas.height)
-    const box = screen.getBoundingClientRect()
-    glow = [(box.x + box.width / 2) / innerHeight, 1 - (box.y + box.height / 2) / innerHeight]
-  }
-  resize()
-  addEventListener('resize', resize)
-  addEventListener('scroll', resize, { passive: true })
+  let last = [16, 1, 1]
   paint = (time, day, lit) => {
+    last = [time, day, lit]
     gl.uniform2f(u.uRes, canvas.width, canvas.height)
     gl.uniform1f(u.uTime, time)
     gl.uniform1f(u.uDay, day)
@@ -137,6 +128,24 @@ if (gl && !software) {
     gl.uniform2f(u.uGlow, glow[0], glow[1])
     gl.drawArrays(gl.TRIANGLES, 0, 3)
   }
+  const resize = () => {
+    const scale = Math.min(devicePixelRatio || 1, 2) * 0.5
+    const width = Math.round(innerWidth * scale)
+    const height = Math.round(innerHeight * scale)
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width
+      canvas.height = height
+      gl.viewport(0, 0, width, height)
+      if (still) {
+        paint(...last)
+      }
+    }
+    const box = screen.getBoundingClientRect()
+    glow = [(box.x + box.width / 2) / innerHeight, 1 - (box.y + box.height / 2) / innerHeight]
+  }
+  resize()
+  addEventListener('resize', resize)
+  addEventListener('scroll', resize, { passive: true })
 }
 
 const clamp = (v) => Math.min(1, Math.max(0, v))
@@ -305,8 +314,8 @@ function frame(now) {
 }
 
 if (still) {
-  day = 1
-  render(16, 0)
+  day = 0
+  render(6.5, 0)
 } else {
   requestAnimationFrame(frame)
 }
@@ -351,18 +360,26 @@ function reset() {
   pbar.classList.remove('sent', 'failed')
 }
 
+let swap = 0
+
 async function swapText(text) {
+  const run = ++swap
   if (still) {
     field.value = text
     return
   }
-  await field.animate(
-    [{ transform: 'none' }, { transform: 'translateY(-70%)', filter: 'blur(3px)', opacity: 0 }],
-    {
-      duration: 160,
-      easing: OUT,
-    },
-  ).finished
+  await field
+    .animate(
+      [{ transform: 'none' }, { transform: 'translateY(-70%)', filter: 'blur(3px)', opacity: 0 }],
+      {
+        duration: 160,
+        easing: OUT,
+      },
+    )
+    .finished.catch(() => undefined)
+  if (run !== swap) {
+    return
+  }
   field.value = text
   field.animate(
     [{ transform: 'translateY(70%)', filter: 'blur(3px)', opacity: 0 }, { transform: 'none' }],
