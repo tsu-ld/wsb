@@ -13,5 +13,7 @@ Works with Claude Max (via `opencode-with-claude`), ChatGPT/Codex and OpenCode G
 ## Develop
 
 ```sh
-bun install && bun check && bun test && bun scripts/e2e.js
+bun install && bun scripts/build.js && bun check && bun test && bun scripts/e2e.js
 ```
+
+`src/tui.tsx` compiles to `dist/tui.js`, which is committed because git installs load it. Run the build after changing the TUI part.

@@ -20,7 +20,7 @@ To uninstall, remove the wsb entry from `plugins` in the OpenCode config.
 
 1. The provider refuses a request because the subscription usage limit is reached.
 2. wsb reads the exact reset time for that account and model: from the error itself, from the provider's usage endpoint (ChatGPT, OpenCode Go) or from the local Meridian proxy used by opencode-with-claude (Claude Max).
-3. It tells OpenCode's own retry to wait until that time. If OpenCode restarts in between, the deadline is kept and the turn resumes on time.
+3. It tells OpenCode's own retry to wait until that time and shows the remaining time above the prompt. If OpenCode restarts in between, the deadline is kept and the turn resumes on time.
 4. At the reset, OpenCode retries the same turn. No new session, no provider switch, no polling the model.
 
 If the reset time is unknown, wsb leaves OpenCode's normal retry behaviour alone. A manual prompt or an interrupt always wins.
