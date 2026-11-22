@@ -2,6 +2,7 @@ import { setTimeout as sleep } from 'node:timers/promises'
 import { sameRoute, retryDecision } from './policy.ts'
 import { SessionLocks, SessionSignals } from './coordination.ts'
 import type { Wait } from './policy.ts'
+import type { HoldState } from './rpc.ts'
 import type { Plugin } from '@opencode/plugin'
 import type { SessionHttpResponse, SessionRetry } from '@opencode/plugin/promise/session'
 
@@ -17,7 +18,11 @@ export interface ProviderAdapter {
   ): Promise<number | undefined> | number | undefined
 }
 
-function isWait(value: unknown): value is Wait {
+interface Stored extends Wait {
+  readonly since?: number
+}
+
+function isWait(value: unknown): value is Stored {
   if (
     !value ||
     typeof value !== 'object' ||
@@ -25,7 +30,8 @@ function isWait(value: unknown): value is Wait {
     !Number.isSafeInteger(value.until) ||
     !('agent' in value) ||
     typeof value.agent !== 'string' ||
-    !('model' in value)
+    !('model' in value) ||
+    ('since' in value && !Number.isSafeInteger(value.since))
   ) {
     return false
   }
@@ -41,7 +47,25 @@ function isWait(value: unknown): value is Wait {
   )
 }
 
-export async function setup(ctx: Plugin.Context, readers: Record<string, ProviderAdapter>) {
+export async function holdFor(ctx: Plugin.Context, sessionID: string): Promise<HoldState | null> {
+  const value = await ctx.storage.get(key(sessionID))
+  if (!value || !isWait(value) || !retryDecision(value.until, Date.now())) {
+    return null
+  }
+  return {
+    sessionID,
+    until: value.until,
+    since: value.since ?? Math.min(Date.now(), value.until),
+    providerID: value.model.providerID,
+    model: value.model.id,
+  }
+}
+
+export async function setup(
+  ctx: Plugin.Context,
+  readers: Record<string, ProviderAdapter>,
+  onChange?: (sessionID: string) => void,
+) {
   const pending = new SessionSignals()
   const changed = new SessionSignals()
   const locks = new SessionLocks()
@@ -77,7 +101,25 @@ export async function setup(ctx: Plugin.Context, readers: Record<string, Provide
     pending.notify(sessionID)
     await locks.run(sessionID, () => ctx.storage.remove(key(sessionID)))
     changed.notify(sessionID)
+    onChange?.(sessionID)
   })
+
+  void (async () => {
+    for await (const event of ctx.event.subscribe({
+      types: ['session.execution.interrupted'],
+      signal: unloading.signal,
+    })) {
+      if (event.data.reason === 'shutdown') {
+        continue
+      }
+      const sessionID = event.data.sessionID
+      observations.delete(sessionID)
+      pending.notify(sessionID)
+      await locks.run(sessionID, () => ctx.storage.remove(key(sessionID)))
+      changed.notify(sessionID)
+      onChange?.(sessionID)
+    }
+  })().catch(() => undefined)
 
   await ctx.session.hook('retry', async (event) => {
     const provider =
@@ -107,10 +149,16 @@ export async function setup(ctx: Plugin.Context, readers: Record<string, Provide
         if (signal.aborted || unloading.signal.aborted) {
           return
         }
-        await ctx.storage.set(key(event.sessionID), { until, agent: event.agent, model })
+        await ctx.storage.set(key(event.sessionID), {
+          until,
+          since: Date.now(),
+          agent: event.agent,
+          model,
+        })
         if (!signal.aborted && !unloading.signal.aborted) {
           event.decision = { retry: true, delay: Math.max(0, until - Date.now()) }
           changed.notify(event.sessionID)
+          onChange?.(event.sessionID)
         }
       })
     })
@@ -119,25 +167,29 @@ export async function setup(ctx: Plugin.Context, readers: Record<string, Provide
   await ctx.session.hook('context', async (event) => {
     while (!unloading.signal.aborted) {
       const waited = await changed.run(event.sessionID, async (changedSignal) => {
-        const decision = await locks.run(event.sessionID, async () => {
+        const outcome = await locks.run(event.sessionID, async () => {
           const value = await ctx.storage.get(key(event.sessionID))
           if (!value) {
-            return undefined
+            return { delay: undefined, cleared: false }
           }
           if (isWait(value)) {
-            const delay = retryDecision(value.until, Date.now())
-            if (delay) {
-              return sameRoute(value, event) ? delay : undefined
+            const wait = retryDecision(value.until, Date.now())
+            if (wait) {
+              return { delay: sameRoute(value, event) ? wait.delay : undefined, cleared: false }
             }
           }
           await ctx.storage.remove(key(event.sessionID))
-          return undefined
+          return { delay: undefined, cleared: true }
         })
+        if (outcome.cleared) {
+          onChange?.(event.sessionID)
+        }
+        const decision = outcome.delay
         if (!decision) {
           return false
         }
         const signal = AbortSignal.any([changedSignal, unloading.signal])
-        await sleep(Math.min(2_147_483_647, decision.delay), undefined, {
+        await sleep(Math.min(2_147_483_647, decision), undefined, {
           signal,
           ref: false,
         }).catch((error: unknown) => {

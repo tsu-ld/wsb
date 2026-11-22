@@ -8,7 +8,11 @@
     "src"
   ],
   "type": "module",
-  "exports": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./tui": "./src/tui.tsx",
+    "./rpc": "./src/rpc.ts"
+  },
   "scripts": {
     "test": "bun test",
     "check": "bun fmt && oxlint --fix --format=agent && bun check"
@@ -16,8 +20,28 @@
   "devDependencies": {
     "@cloudflare/oxlint-config": "0.1.0",
     "@opencode/plugin": "2.3.2",
+    "@opencode/theme": "2.3.2",
+    "@opentui/core": "0.8.4",
+    "@opentui/solid": "0.8.4",
     "@types/bun": "1.4.5",
     "oxlint": "1.94.0",
+    "solid-js": "1.9.17",
     "tsrs": "0.25.0-ts7.1.0-beta"
+  },
+  "peerDependencies": {
+    "@opentui/core": ">=0.8.4",
+    "@opentui/solid": ">=0.8.4",
+    "solid-js": ">=1.9.0"
+  },
+  "peerDependenciesMeta": {
+    "@opentui/core": {
+      "optional": true
+    },
+    "@opentui/solid": {
+      "optional": true
+    },
+    "solid-js": {
+      "optional": true
+    }
   }
 }

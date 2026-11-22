@@ -18,6 +18,13 @@ async function load() {
       set: (k, v) => storage.set(k, v),
       remove: (k) => storage.delete(k),
     },
+    rpc: {
+      register: async () => ({
+        dispose: async () => undefined,
+        events: { emit: async () => undefined },
+      }),
+    },
+    event: { subscribe: () => (async function* () {})() },
   })
   return { hooks, storage, dispose }
 }
@@ -78,7 +85,7 @@ test('the installed plugin follows only the Claude request that hit the local Me
     const other = { ...event, sessionID: 'ses_b', decision: { retry: false } }
     await hooks.retry(other)
     expect(other.decision).toEqual({ retry: false })
-    dispose()
+    await dispose()
   } finally {
     proxy.closeAllConnections()
     await new Promise((resolve) => {

@@ -17,5 +17,6 @@ export default defineConfig({
     ...cloudflare.rules,
     'local/no-comments': 'error',
     'local/no-em-dash': 'error',
+    'react/no-unknown-property': 'off',
   },
 })
