@@ -271,13 +271,6 @@ body::after {
 
 .bar,
 [data-tag='without'] .t-without,
-@keyframes lnIn {
-  from {
-    transform: translateY(8px);
-    clip-path: inset(0 100% 0 0);
-  }
-}
-
 @keyframes blink {
   50% {
     opacity: 0;
@@ -601,8 +594,8 @@ textarea {
 .tag > span {
   grid-area: 1 / 1;
   justify-self: end;
-  opacity: 0;
-  transition: opacity 0.25s;
+  clip-path: inset(0 0 0 100%);
+  transition: clip-path 0.25s;
 }
 .tag > span::before {
   content: '';
@@ -620,7 +613,7 @@ textarea {
 }
 [data-tag='without'] .t-without,
 [data-tag='with'] .t-with {
-  opacity: 1;
+  clip-path: inset(0);
 }
 .log {
   display: flex;
@@ -643,7 +636,10 @@ textarea {
 @keyframes lnIn {
   from {
     transform: translateY(6px);
-    opacity: 0.2;
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 -20% 0);
   }
 }
 .umsg {
