@@ -264,7 +264,7 @@ function frame(now) {
   const label = `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
   if (clock.getAttribute('aria-label') !== label) {
     flap(label)
-    sky.textContent = minutes >= 420 ? '☀' : '☾'
+    sky.querySelector('use').setAttribute('href', minutes >= 420 ? '#i-sun' : '#i-moon')
   }
   requestAnimationFrame(frame)
 }
@@ -286,25 +286,57 @@ if (still) {
 
 const field = document.getElementById('install')
 const tabs = [...document.querySelectorAll('[role="tab"]')]
+const pbar = document.querySelector('.pbar')
+const copy = document.querySelector('.send')
+const status = document.querySelector('.status')
+const current = () => tabs.find((tab) => tab.getAttribute('aria-selected') === 'true').dataset.text
+let typing = 0
+let timer = 0
+
+function typeIn(text) {
+  cancelAnimationFrame(typing)
+  if (still) {
+    field.value = text
+    return
+  }
+  const start = performance.now()
+  const step = (now) => {
+    const n = Math.min(text.length, Math.round((now - start) / 11))
+    field.value = text.slice(0, n)
+    if (n < text.length) {
+      typing = requestAnimationFrame(step)
+    }
+  }
+  typing = requestAnimationFrame(step)
+}
+
 for (const tab of tabs) {
   tab.addEventListener('click', () => {
     for (const other of tabs) {
       other.setAttribute('aria-selected', String(other === tab))
     }
-    field.value = tab.dataset.text
+    pbar.classList.remove('sent')
+    typeIn(tab.dataset.text)
   })
 }
 
-const copy = document.querySelector('.copy')
-const status = document.querySelector('.status')
-let timer = 0
+field.addEventListener('focus', () => field.select())
+setTimeout(() => typeIn(current()), 500)
+
 copy.addEventListener('click', () => {
-  navigator.clipboard.writeText(field.value).then(
+  const text = current()
+  navigator.clipboard.writeText(text).then(
     () => {
-      status.textContent = 'Copied.'
-      copy.classList.add('copied')
+      status.textContent = 'Copied. Paste it into your agent.'
+      cancelAnimationFrame(typing)
+      pbar.classList.remove('sent')
+      void pbar.offsetWidth
+      pbar.classList.add('sent')
       clearTimeout(timer)
-      timer = setTimeout(() => copy.classList.remove('copied'), 1600)
+      timer = setTimeout(() => {
+        pbar.classList.remove('sent')
+        typeIn(text)
+      }, 1900)
       const box = copy.getBoundingClientRect()
       if (!still) {
         sparks(box.x + box.width / 2, box.y + box.height / 2)
@@ -313,8 +345,8 @@ copy.addEventListener('click', () => {
       wave[2] = performance.now() / 1000
     },
     () => {
+      field.value = text
       field.focus()
-      field.select()
       status.textContent = 'Text selected. Press Ctrl+C or Command+C to copy.'
     },
   )

@@ -33,11 +33,47 @@
     <meta name="twitter:image" content="https://wsb.tsu.ar/assets/social.png" />
   </head>
   <body data-state="back" data-tag="none">
+    <svg class="sprite" aria-hidden="true">
+      <symbol id="i-dot" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="3.5" fill="currentColor" stroke="none" />
+      </symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></symbol>
+      <symbol id="i-pause" viewBox="0 0 24 24"><path d="M9 5v14M15 5v14" /></symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="4" />
+        <path
+          d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"
+        />
+      </symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24">
+        <path d="M20 14.2A8.2 8.2 0 1 1 9.8 4a6.6 6.6 0 0 0 10.2 10.2z" />
+      </symbol>
+      <symbol id="i-hold" viewBox="0 0 24 24">
+        <path d="M7 3h10M7 21h10M8 3v3.5L12 12l4-5.5V3M8 21v-3.5L12 12l4 5.5V21" />
+      </symbol>
+      <symbol id="i-redo" viewBox="0 0 24 24">
+        <path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5" />
+      </symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7" /></symbol>
+      <symbol id="i-out" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8" /></symbol>
+      <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6" /></symbol>
+      <symbol id="i-agent" viewBox="0 0 24 24">
+        <path
+          d="M12 3v2M7 8h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2zM9.5 13h.01M14.5 13h.01"
+        />
+      </symbol>
+      <symbol id="i-term" viewBox="0 0 24 24"><path d="m5 8 4 4-4 4M12 17h7" /></symbol>
+      <symbol id="i-rew" viewBox="0 0 24 24">
+        <path d="M11 6 4 12l7 6zM20 6l-7 6 7 6z" fill="currentColor" />
+      </symbol>
+    </svg>
     <canvas class="mosaic" aria-hidden="true"></canvas>
 
     <header class="top">
       <a class="logo" href="./" aria-label="wsb home">wsb</a>
-      <a href="https://github.com/tsu-ld/wsb">GitHub ↗</a>
+      <a href="https://github.com/tsu-ld/wsb"
+        >GitHub <svg class="ic"><use href="#i-out" /></svg
+      ></a>
     </header>
 
     <main class="stage">
@@ -52,30 +88,39 @@
           resumes it the moment the limit resets. You wake up to finished work.
         </p>
         <section class="get" aria-label="Install">
-          <div class="tabs" role="tablist">
-            <button
-              role="tab"
-              aria-selected="true"
-              aria-controls="install"
-              data-text="Install the wsb plugin for my OpenCode user: run `opencode plugin add git+https://github.com/tsu-ld/wsb.git#production` and check that it loads."
-            >
-              Ask your agent
-            </button>
-            <button
-              role="tab"
-              aria-selected="false"
-              aria-controls="install"
-              data-text="opencode plugin add git+https://github.com/tsu-ld/wsb.git#production"
-            >
-              Terminal
-            </button>
-          </div>
-          <div class="field">
-            <textarea id="install" rows="2" readonly aria-label="Text to copy">
+          <div class="pbar">
+            <div class="pin">
+              <textarea id="install" rows="2" readonly aria-label="Text to copy">
 Install the wsb plugin for my OpenCode user: run `opencode plugin add git+https://github.com/tsu-ld/wsb.git#production` and check that it loads.</textarea>
-            <button class="copy" type="button">
-              <span class="c-idle">Copy</span><span class="c-done" aria-hidden="true">Copied</span>
-            </button>
+              <p class="msg" aria-hidden="true">
+                <svg class="ic"><use href="#i-check" /></svg> Copied. Paste it into your agent.
+              </p>
+            </div>
+            <div class="prow">
+              <div class="modes" role="tablist" aria-label="Install with">
+                <button
+                  role="tab"
+                  aria-selected="true"
+                  aria-controls="install"
+                  data-text="Install the wsb plugin for my OpenCode user: run `opencode plugin add git+https://github.com/tsu-ld/wsb.git#production` and check that it loads."
+                >
+                  <svg class="ic"><use href="#i-agent" /></svg> Agent
+                </button>
+                <button
+                  role="tab"
+                  aria-selected="false"
+                  aria-controls="install"
+                  data-text="opencode plugin add git+https://github.com/tsu-ld/wsb.git#production"
+                >
+                  <svg class="ic"><use href="#i-term" /></svg> Terminal
+                </button>
+              </div>
+              <span class="hint">one line · no clone</span>
+              <button class="send" type="button" aria-label="Copy">
+                <svg class="ic up"><use href="#i-up" /></svg
+                ><svg class="ic ok"><use href="#i-check" /></svg>
+              </button>
+            </div>
           </div>
           <p class="status sr" role="status"></p>
         </section>
@@ -124,35 +169,85 @@ Install the wsb plugin for my OpenCode user: run `opencode plugin add git+https:
           </div>
           <div class="log">
             <p class="ln prompt on"><span class="caret">›</span> <span class="typed"></span></p>
-            <p class="ln" data-at="1.9"><i>●</i> Read <u>src/search.ts</u></p>
+            <p class="ln" data-at="1.9">
+              <i
+                ><svg class="ic"><use href="#i-dot" /></svg
+              ></i>
+              Read <u>src/search.ts</u>
+            </p>
             <p class="ln" data-at="2.5">
-              <i>●</i> Edit <u>src/rank.ts</u> <em class="add">+42</em> <em class="del">−17</em>
+              <i
+                ><svg class="ic"><use href="#i-dot" /></svg
+              ></i>
+              Edit <u>src/rank.ts</u> <em class="add">+42</em> <em class="del">−17</em>
             </p>
             <p class="ln" data-at="3.1">
-              <i>●</i> Bash <u>bun test</u> <em class="add">✓ 128 passed</em>
+              <i
+                ><svg class="ic"><use href="#i-dot" /></svg
+              ></i>
+              Bash <u>bun test</u>
+              <em class="add"
+                ><svg class="ic"><use href="#i-check" /></svg> 128 passed</em
+              >
             </p>
             <p class="ln" data-at="3.6">
-              <i>●</i> Edit <u>src/cache.ts</u> <span class="dots">…</span>
+              <i
+                ><svg class="ic"><use href="#i-dot" /></svg
+              ></i>
+              Edit <u>src/cache.ts</u> <span class="dots">…</span>
             </p>
-            <p class="ln limit" data-at="4.1"><i>✕</i> Claude Max usage limit reached</p>
+            <p class="ln limit" data-at="4.1">
+              <i
+                ><svg class="ic"><use href="#i-x" /></svg
+              ></i>
+              Claude Max usage limit reached
+            </p>
             <p class="ln bad" data-at="4.8" data-until="7.6">
-              <i>⏸</i> Session stopped. Waiting for you to type “continue”.
+              <i
+                ><svg class="ic"><use href="#i-pause" /></svg
+              ></i>
+              Session stopped. Waiting for you to type “continue”.
             </p>
             <p class="ln bad" data-at="6.3" data-until="7.6">
-              <i>☀</i> 08:55 · you wake up. Nothing ran for 6 hours.
+              <i
+                ><svg class="ic"><use href="#i-sun" /></svg
+              ></i>
+              08:55 · you wake up. Nothing ran for 6 hours.
             </p>
             <p class="ln good" data-at="8.4">
-              <i>◐</i> wsb · holding this turn until the reset
+              <i
+                ><svg class="ic"><use href="#i-hold" /></svg
+              ></i>
+              wsb · holding this turn until the reset
               <span class="meter"><span></span></span>
             </p>
-            <p class="ln back" data-at="12.8"><i>↻</i> Reset · same turn, same model</p>
+            <p class="ln back" data-at="12.8">
+              <i
+                ><svg class="ic"><use href="#i-redo" /></svg
+              ></i>
+              Reset · same turn, same model
+            </p>
             <p class="ln" data-at="13.4">
-              <i>●</i> Edit <u>src/cache.ts</u> <em class="add">+18</em> <em class="del">−6</em>
+              <i
+                ><svg class="ic"><use href="#i-dot" /></svg
+              ></i>
+              Edit <u>src/cache.ts</u> <em class="add">+18</em> <em class="del">−6</em>
             </p>
             <p class="ln" data-at="14.0">
-              <i>●</i> Bash <u>bun test</u> <em class="add">✓ 131 passed</em>
+              <i
+                ><svg class="ic"><use href="#i-dot" /></svg
+              ></i>
+              Bash <u>bun test</u>
+              <em class="add"
+                ><svg class="ic"><use href="#i-check" /></svg> 131 passed</em
+              >
             </p>
-            <p class="ln done" data-at="14.7"><i>✓</i> Done · search index refactored</p>
+            <p class="ln done" data-at="14.7">
+              <i
+                ><svg class="ic"><use href="#i-check" /></svg
+              ></i>
+              Done · search index refactored
+            </p>
           </div>
           <div class="status">
             <span class="model"
@@ -164,7 +259,8 @@ Install the wsb plugin for my OpenCode user: run `opencode plugin add git+https:
               claude-opus · Claude Max</span
             >
             <span class="time"
-              ><span class="sky">☾</span
+              ><span class="sky"
+                ><svg class="ic"><use href="#i-moon" /></svg></span
               ><b class="clock" aria-label="02:41"
                 ><i>0</i><i>2</i><i class="colon">:</i><i>4</i><i>1</i></b
               ></span
