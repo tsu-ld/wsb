@@ -8,7 +8,7 @@
       name="description"
       content="OpenCode plugin. When your subscription hits its usage limit, it waits for the reset and retries the same turn."
     />
-    <meta name="theme-color" content="#f1f0ea" />
+    <meta name="theme-color" content="#0b0a09" />
     <link rel="canonical" href="https://wsb.tsu.ar/" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
     <link rel="preload" href="fonts/Anton-Regular.woff2" as="font" type="font/woff2" crossorigin />
@@ -27,7 +27,7 @@
     <meta property="og:image:height" content="640" />
     <meta
       property="og:image:alt"
-      content="WE’RE SO BACK over a night chart: without wsb the session stops at the 02:41 usage limit until morning; with wsb it waits for the 03:17 reset, retries the same turn and is done at 03:24."
+      content="A dark room lit by moonlight through a window. IT’S SO OVER is unlit, WE’RE SO BACK is lit, next to a terminal where the usage limit hit at 02:41, wsb retried the same turn at the 03:17 reset and the task finished at 03:24."
     />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="https://wsb.tsu.ar/assets/social.png" />
@@ -62,7 +62,8 @@
       }
     </script>
   </head>
-  <body data-phase="work">
+  <body data-phase="work" data-time="night">
+    <canvas class="room" aria-hidden="true"></canvas>
     <svg class="sprite" aria-hidden="true">
       <symbol id="i-out" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8" /></symbol>
       <symbol id="i-copy" viewBox="0 0 24 24">
@@ -73,128 +74,107 @@
     </svg>
 
     <header class="top">
-      <div class="id">
-        <a class="logo" href="./" aria-label="wsb home"
-          ><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>wsb</a
-        >
-        <span class="sub">OpenCode plugin</span>
-      </div>
-      <dl class="cols">
-        <div class="col-works">
-          <dt>Works with</dt>
-          <dd>Claude Max · Codex · OpenCode Go</dd>
-        </div>
-        <div>
-          <dt>Resets</dt>
-          <dd>03:17</dd>
-        </div>
-        <div>
-          <dt>Status</dt>
-          <dd class="status-word">Working</dd>
-        </div>
-      </dl>
+      <a class="logo" href="./" aria-label="wsb home"
+        ><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>wsb</a
+      >
       <a class="gh" href="https://github.com/tsu-ld/wsb"
         >GitHub <svg class="ic"><use href="#i-out" /></svg
       ></a>
     </header>
 
-    <main>
-      <h1 class="word">
-        <span class="sr">wsb, the OpenCode plugin that waits for your usage limit to reset: </span>
-        <span class="w-over" aria-hidden="true">It’s so over</span>
-        <span class="w-back">We’re so back</span>
-      </h1>
-
-      <section class="night" aria-labelledby="night-title">
-        <h2 id="night-title" class="sr">One night, with and without wsb</h2>
-        <p class="sr">
-          At 2:41 AM the agent hits the 5-hour usage limit, which resets at 3:17. Without wsb the
-          session stops and waits until you wake up at 8:55 and type “continue”. With wsb the turn
-          is held until 3:17, OpenCode retries it, and the task is done at 3:24 while you sleep.
+    <main class="stage">
+      <div class="pitch">
+        <h1 class="word">
+          <span class="sr"
+            >wsb, the OpenCode plugin that waits for your usage limit to reset:
+          </span>
+          <span class="w-over" aria-hidden="true">It’s so over</span>
+          <span class="w-back">We’re so back</span>
+        </h1>
+        <p class="lede">
+          Your agent hits the usage limit at 2:41 AM. You’re asleep. <b>wsb</b> waits for the reset
+          and OpenCode retries the same turn, with the same model. No alarm, no “continue”.
         </p>
-        <div class="axis" aria-hidden="true">
-          <span class="edge">← 01:30 you go to bed</span>
-          <span class="edge">you wake up 08:55 →</span>
-        </div>
-        <div class="chart" aria-hidden="true">
-          <div class="lane">
-            <span class="who">Without wsb</span>
-            <div class="track">
-              <span class="seg s-work" style="--a: 90; --b: 161">working</span>
-              <span class="seg s-stop" style="--a: 161; --b: 535"
-                >stopped. waiting for you to type “continue”</span
+        <section class="get" aria-label="Install">
+          <div class="pbar">
+            <div class="modes" role="tablist" aria-label="Install with">
+              <span class="thumb" aria-hidden="true"></span>
+              <button
+                role="tab"
+                aria-selected="true"
+                aria-controls="install"
+                data-text="Install the wsb plugin for my OpenCode user: run `opencode plugin add git+https://github.com/tsu-ld/wsb.git#production` and check that it loads."
               >
-            </div>
-          </div>
-          <div class="lane">
-            <span class="who">With wsb</span>
-            <div class="track">
-              <span class="seg s-work" style="--a: 90; --b: 161">working</span>
-              <span class="seg s-hold" style="--a: 161; --b: 197">wsb holds</span>
-              <span class="seg s-done" style="--a: 197; --b: 204"></span>
-              <span class="seg s-rest" style="--a: 204; --b: 535"
-                >same turn retried at 03:17. done 03:24. you’re still asleep</span
+                Ask your agent
+              </button>
+              <button
+                role="tab"
+                aria-selected="false"
+                aria-controls="install"
+                data-text="opencode plugin add git+https://github.com/tsu-ld/wsb.git#production"
               >
+                Terminal
+              </button>
             </div>
-          </div>
-          <div class="ruler">
-            <i style="--a: 60">01</i><i style="--a: 120">02</i><i style="--a: 180">03</i
-            ><i style="--a: 240">04</i><i style="--a: 300">05</i><i style="--a: 360">06</i
-            ><i style="--a: 420">07</i><i style="--a: 480">08</i><i style="--a: 540">09</i>
-          </div>
-          <span class="mark-at m-limit" style="--a: 161"><b>02:41</b> usage limit</span>
-          <span class="mark-at m-reset" style="--a: 197"><b>03:17</b> reset</span>
-          <span class="head"><b class="clock">01:30</b></span>
-        </div>
-        <p class="log" aria-hidden="true">
-          <span class="src">[opencode]</span> <span class="msg-log">Read src/search.ts</span>
-        </p>
-      </section>
-
-      <section class="get" aria-labelledby="get-title">
-        <p class="lede" id="get-title">
-          You hit the usage limit at 2:41 AM. You’re asleep. <b>wsb</b> waits for the reset and
-          OpenCode retries the same turn, with the same model. No alarm, no “continue”.
-        </p>
-        <div class="pbar">
-          <div class="modes" role="tablist" aria-label="Install with">
-            <button
-              role="tab"
-              aria-selected="true"
-              aria-controls="install"
-              data-text="Install the wsb plugin for my OpenCode user: run `opencode plugin add git+https://github.com/tsu-ld/wsb.git#production` and check that it loads."
-            >
-              Ask your agent
-            </button>
-            <button
-              role="tab"
-              aria-selected="false"
-              aria-controls="install"
-              data-text="opencode plugin add git+https://github.com/tsu-ld/wsb.git#production"
-            >
-              Terminal
-            </button>
-          </div>
-          <div class="pin">
-            <textarea id="install" rows="3" readonly aria-label="Text to copy">
+            <div class="pin">
+              <textarea id="install" rows="3" readonly aria-label="Text to copy">
 Install the wsb plugin for my OpenCode user: run `opencode plugin add git+https://github.com/tsu-ld/wsb.git#production` and check that it loads.</textarea>
-            <p class="msg" aria-hidden="true">Copied. Paste it into your agent.</p>
-            <button class="send" type="button" aria-label="Copy">
-              <svg class="ic up"><use href="#i-copy" /></svg
-              ><svg class="ic ok"><use href="#i-check" /></svg>
-            </button>
+              <p class="msg" aria-hidden="true">Copied. Paste it into your agent.</p>
+              <button class="send" type="button" aria-label="Copy">
+                <svg class="ic up"><use href="#i-copy" /></svg
+                ><svg class="ic ok"><use href="#i-check" /></svg>
+              </button>
+            </div>
+          </div>
+          <p class="status sr" role="status"></p>
+        </section>
+        <p class="works">Claude Max · ChatGPT/Codex · OpenCode Go · OpenCode 2.3+</p>
+      </div>
+
+      <section class="demo" aria-label="Demo: a session at night">
+        <p class="sr">
+          At 2:41 AM the agent hits the 5-hour usage limit, which resets at 3:17. The screen goes
+          dark and wsb holds the turn. At 3:17 OpenCode retries the same turn in the same session
+          and the task is done at 3:24.
+        </p>
+        <div class="screen" aria-hidden="true">
+          <div class="bar">
+            <span>~/shop · opencode</span><span class="now" aria-hidden="true"></span>
+          </div>
+          <div class="log">
+            <p class="ln you"><b>&gt;</b> <span class="typed"></span></p>
+            <p class="ln" data-at="1.9"><b>read</b> src/search.ts</p>
+            <p class="ln" data-at="2.4">
+              <b>edit</b> src/rank.ts <span class="add">+12</span> <span class="del">-4</span>
+            </p>
+            <p class="ln" data-at="3"><b>test</b> 128 pass · 0 fail</p>
+            <p class="ln" data-at="3.5"><b>edit</b> src/cache.ts</p>
+            <p class="ln err" data-at="4.1">
+              <b>limit</b> You’ve hit your 5-hour limit · resets 3:17am
+            </p>
+            <p class="ln wsb" data-at="10.9"><b>wsb</b> 03:17 reset · retrying the same turn</p>
+            <p class="ln" data-at="11.5">
+              <b>edit</b> src/cache.ts <span class="add">+30</span> <span class="del">-9</span>
+            </p>
+            <p class="ln" data-at="12.1"><b>test</b> 131 pass · 0 fail</p>
+            <p class="ln done" data-at="12.8"><b>done</b> 03:24 · same session, same model</p>
+            <p class="ln morning" data-at="14.6"><b>08:55</b> you wake up. it’s done</p>
+          </div>
+          <div class="sleep">
+            <svg class="seg7" viewBox="0 0 196 70"></svg>
+            <p>
+              <svg class="ring" viewBox="0 0 20 20">
+                <circle cx="10" cy="10" r="8" />
+                <circle class="arc" cx="10" cy="10" r="8" pathLength="1" />
+                <path class="tick" d="m6 10.5 2.6 2.6L14 7.6" pathLength="1" />
+              </svg>
+              wsb · holding this turn until 03:17
+            </p>
           </div>
         </div>
-        <p class="status sr" role="status"></p>
       </section>
     </main>
 
-    <footer class="foot">
-      <span
-        >MIT · OpenCode 2.3+ · Claude Max via opencode-with-claude, ChatGPT/Codex OAuth, OpenCode
-        Go</span
-      >
-      <a href="https://github.com/tsu-ld/wsb">source</a>
-    </footer>
+    <footer class="foot"><span>MIT</span><a href="https://github.com/tsu-ld/wsb">source</a></footer>
   </body>
 </html>
