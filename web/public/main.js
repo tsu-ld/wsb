@@ -136,12 +136,12 @@ if (gl && !software) {
       canvas.width = width
       canvas.height = height
       gl.viewport(0, 0, width, height)
-      if (still) {
-        paint(...last)
-      }
     }
     const box = screen.getBoundingClientRect()
     glow = [(box.x + box.width / 2) / innerHeight, 1 - (box.y + box.height / 2) / innerHeight]
+    if (still) {
+      paint(...last)
+    }
   }
   resize()
   addEventListener('resize', resize)
