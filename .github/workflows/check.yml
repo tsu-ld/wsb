@@ -1,0 +1,26 @@
+name: Check
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: 1.4.5
+      - run: bun install --frozen-lockfile
+      - run: bun check && git diff --exit-code && bun test
+      - name: Install the verified OpenCode release
+        working-directory: ${{ runner.temp }}
+        run: |
+          curl -fsSL --retry 3 https://github.com/anomalyco/opencode/releases/download/v2.3.2/opencode-linux-x64.tar.gz -o opencode.tar.gz
+          echo '563b5d663637226b6e3bb4bb6803281bc39b0d2cd88db06d674b6420aab009b0  opencode.tar.gz' | sha256sum -c -
+          mkdir host
+          tar -xzf opencode.tar.gz -C host
+          dirname "$(find "$PWD/host" -name opencode -type f -print -quit)" >> "$GITHUB_PATH"
+      - run: opencode --version && bun scripts/e2e.js
