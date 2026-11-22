@@ -92,8 +92,15 @@
           <span class="w-back">We’re so back</span>
         </h1>
         <p class="lede">
-          Your agent hits the usage limit at 2:41 AM. You’re asleep. <b>wsb</b> waits for the reset
-          and OpenCode retries the same turn, with the same model. No alarm, no “continue”.
+          <span class="lede-err">You’ve hit your 5-hour limit · resets 3:17am</span>
+          <span class="lede-line"
+            >No 3 AM alarm. No typing “continue”. No retries wasted on a limit that’s already
+            hit.</span
+          >
+          <span
+            ><b>wsb</b> waits for the reset and OpenCode picks up the same turn, with the same
+            model.</span
+          >
         </p>
         <section class="get" aria-label="Install">
           <div class="pbar">
@@ -117,63 +124,213 @@
               </button>
             </div>
             <div class="pin">
-              <textarea id="install" rows="3" readonly aria-label="Text to copy">
+              <div class="well">
+                <p class="sizer" aria-hidden="true">
+                  Install the wsb plugin for my OpenCode user: run `opencode plugin add
+                  git+https://github.com/tsu-ld/wsb.git#production` and check that it loads.
+                </p>
+                <textarea id="install" readonly aria-label="Text to copy">
 Install the wsb plugin for my OpenCode user: run `opencode plugin add git+https://github.com/tsu-ld/wsb.git#production` and check that it loads.</textarea>
-              <p class="msg" aria-hidden="true">Copied. Paste it into your agent.</p>
+                <p class="msg" aria-hidden="true">
+                  <svg class="ic"><use href="#i-check" /></svg>
+                  <span>Copied. Paste it into your agent.</span>
+                </p>
+              </div>
               <button class="send" type="button" aria-label="Copy">
-                <svg class="ic up"><use href="#i-copy" /></svg
-                ><svg class="ic ok"><use href="#i-check" /></svg>
+                <span class="glyphs" aria-hidden="true"
+                  ><span class="up"
+                    ><svg class="ic"><use href="#i-copy" /></svg
+                    ><span class="send-label">Copy</span></span
+                  ><span class="ok"
+                    ><svg class="ic"><use href="#i-check" /></svg
+                    ><span class="send-label">Copied</span></span
+                  ></span
+                >
               </button>
             </div>
           </div>
           <p class="status sr" role="status"></p>
         </section>
-        <p class="works">Claude Max · ChatGPT/Codex · OpenCode Go · OpenCode 2.3+</p>
+        <p class="works">
+          OpenCode 2.3+ plugin · Claude Max via opencode-with-claude · ChatGPT/Codex · OpenCode Go
+        </p>
       </div>
 
       <section class="demo" aria-label="Demo: a session at night">
         <p class="sr">
-          At 2:41 AM the agent hits the 5-hour usage limit, which resets at 3:17. The screen goes
-          dark and wsb holds the turn. At 3:17 OpenCode retries the same turn in the same session
-          and the task is done at 3:24.
+          At 2:41 AM the agent hits the 5-hour usage limit, which resets at 3:17. OpenCode shows its
+          retry line and wsb shows a panel above the prompt with the time left until the reset. At
+          3:17 OpenCode continues the same turn and the task is done at 3:24.
         </p>
         <div class="screen" aria-hidden="true">
           <div class="bar">
-            <span>~/shop · opencode</span><span class="now" aria-hidden="true"></span>
+            <span>~/shop</span>
+            <span class="model">Build · Claude Opus 5.5</span>
+            <span class="now"></span>
           </div>
           <div class="log">
-            <p class="ln you"><b>&gt;</b> <span class="typed"></span></p>
-            <p class="ln" data-at="1.9"><b>read</b> src/search.ts</p>
-            <p class="ln" data-at="2.4">
-              <b>edit</b> src/rank.ts <span class="add">+12</span> <span class="del">-4</span>
-            </p>
-            <p class="ln" data-at="3"><b>test</b> 128 pass · 0 fail</p>
-            <p class="ln" data-at="3.5"><b>edit</b> src/cache.ts</p>
-            <p class="ln err" data-at="4.1">
-              <b>limit</b> You’ve hit your 5-hour limit · resets 3:17am
-            </p>
-            <p class="ln wsb" data-at="10.9"><b>wsb</b> 03:17 reset · retrying the same turn</p>
-            <p class="ln" data-at="11.5">
-              <b>edit</b> src/cache.ts <span class="add">+30</span> <span class="del">-9</span>
-            </p>
-            <p class="ln" data-at="12.1"><b>test</b> 131 pass · 0 fail</p>
-            <p class="ln done" data-at="12.8"><b>done</b> 03:24 · same session, same model</p>
-            <p class="ln morning" data-at="14.6"><b>08:55</b> you wake up. it’s done</p>
+            <div class="stack">
+              <div class="item you on">
+                <div><span class="typed"></span><i class="caret"></i></div>
+              </div>
+              <div class="item row" data-start="1" data-end="1.25">
+                <div>
+                  <span class="mk"
+                    ><svg viewBox="0 0 20 20">
+                      <circle class="trk" cx="10" cy="10" r="7.5" />
+                      <circle class="spin" cx="10" cy="10" r="7.5" pathLength="1" />
+                      <path class="chk" d="m6.4 10.4 2.5 2.5 4.8-5.2" pathLength="1" /></svg></span
+                  ><b>Read</b><span class="arg">src/search.ts</span><span class="res"></span
+                  ><span class="tm"></span>
+                </div>
+              </div>
+              <div class="item row" data-start="1.3" data-end="1.7">
+                <div>
+                  <span class="mk"
+                    ><svg viewBox="0 0 20 20">
+                      <circle class="trk" cx="10" cy="10" r="7.5" />
+                      <circle class="spin" cx="10" cy="10" r="7.5" pathLength="1" />
+                      <path class="chk" d="m6.4 10.4 2.5 2.5 4.8-5.2" pathLength="1" /></svg></span
+                  ><b>Edit</b
+                  ><span class="arg"
+                    >src/rank.ts <span class="add">+12</span> <span class="del">-4</span></span
+                  ><span class="res"></span><span class="tm"></span>
+                </div>
+              </div>
+              <div class="item row" data-start="1.8" data-end="2.6" data-res="128 pass">
+                <div>
+                  <span class="mk"
+                    ><svg viewBox="0 0 20 20">
+                      <circle class="trk" cx="10" cy="10" r="7.5" />
+                      <circle class="spin" cx="10" cy="10" r="7.5" pathLength="1" />
+                      <path class="chk" d="m6.4 10.4 2.5 2.5 4.8-5.2" pathLength="1" /></svg></span
+                  ><b>Bash</b><span class="arg">bun test</span><span class="res"></span
+                  ><span class="tm"></span>
+                </div>
+              </div>
+              <div class="item row" data-start="2.7" data-end="3.1">
+                <div>
+                  <span class="mk"
+                    ><svg viewBox="0 0 20 20">
+                      <circle class="trk" cx="10" cy="10" r="7.5" />
+                      <circle class="spin" cx="10" cy="10" r="7.5" pathLength="1" />
+                      <path class="chk" d="m6.4 10.4 2.5 2.5 4.8-5.2" pathLength="1" /></svg></span
+                  ><b>Edit</b><span class="arg">src/cache.ts</span><span class="res"></span
+                  ><span class="tm"></span>
+                </div>
+              </div>
+              <div class="item retry" data-start="3.15" data-end="10.85">
+                <div>
+                  <span class="warn"
+                    >⚠ <span class="retry-text">Retrying in 2160s</span> · attempt 1 ·</span
+                  >
+                  You’ve hit your 5-hour limit · resets 3:17am
+                </div>
+              </div>
+              <div class="item row" data-start="10.85" data-end="11.4">
+                <div>
+                  <span class="mk"
+                    ><svg viewBox="0 0 20 20">
+                      <circle class="trk" cx="10" cy="10" r="7.5" />
+                      <circle class="spin" cx="10" cy="10" r="7.5" pathLength="1" />
+                      <path class="chk" d="m6.4 10.4 2.5 2.5 4.8-5.2" pathLength="1" /></svg></span
+                  ><b>Edit</b
+                  ><span class="arg"
+                    >src/cache.ts <span class="add">+30</span> <span class="del">-9</span></span
+                  ><span class="res"></span><span class="tm"></span>
+                </div>
+              </div>
+              <div class="item row" data-start="11.5" data-end="12.3" data-res="131 pass">
+                <div>
+                  <span class="mk"
+                    ><svg viewBox="0 0 20 20">
+                      <circle class="trk" cx="10" cy="10" r="7.5" />
+                      <circle class="spin" cx="10" cy="10" r="7.5" pathLength="1" />
+                      <path class="chk" d="m6.4 10.4 2.5 2.5 4.8-5.2" pathLength="1" /></svg></span
+                  ><b>Bash</b><span class="arg">bun test</span><span class="res"></span
+                  ><span class="tm"></span>
+                </div>
+              </div>
+              <div class="item fin" data-start="12.5">
+                <div>
+                  Search index now ranks by query. 131 tests pass.
+                  <span class="meta">Build · Claude Opus 5.5 · 03:24</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="sleep">
-            <svg class="seg7" viewBox="0 0 196 70"></svg>
-            <p>
-              <svg class="ring" viewBox="0 0 20 20">
-                <circle cx="10" cy="10" r="8" />
-                <circle class="arc" cx="10" cy="10" r="8" pathLength="1" />
-                <path class="tick" d="m6 10.5 2.6 2.6L14 7.6" pathLength="1" />
-              </svg>
-              wsb · holding this turn until 03:17
-            </p>
+          <div class="composer">
+            <div class="hold" data-start="3.5" data-end="10.85">
+              <div class="hold-in">
+                <p class="h1">
+                  <span class="left">36m 00s</span><span class="unit">left</span>
+                  <span class="track"><i></i></span>
+                </p>
+                <p class="h2">
+                  <b>wsb</b> holds this turn until 03:17<span class="mute"> · Claude&nbsp;Max</span>
+                </p>
+                <p class="h3">then the same turn continues · a new message or Esc takes over</p>
+              </div>
+            </div>
+            <div class="prompt">
+              <p class="ph">Ask anything…</p>
+              <p class="foot-line">
+                <span class="agent">Build</span> Claude Opus 5.5 <span class="mute">Anthropic</span
+                ><span class="st"></span>
+              </p>
+            </div>
           </div>
         </div>
       </section>
     </main>
+
+    <section class="pain" aria-labelledby="pain-title">
+      <h2 id="pain-title">What a usage limit costs you today</h2>
+      <ol class="costs">
+        <li>
+          <h3>An alarm at 3 AM</h3>
+          <blockquote>
+            “…avoid having to set alarms in the middle of the night to
+            <code>--continue</code> running tasks.”
+          </blockquote>
+          <a href="https://github.com/anthropics/claude-code/issues/1314"
+            >anthropics/claude-code#1314 <svg class="ic"><use href="#i-out" /></svg
+          ></a>
+        </li>
+        <li>
+          <h3>Retries that hit the limit, then “continue” by hand</h3>
+          <blockquote>
+            “after the limit is reached the session keeps retrying against the same model, and after
+            the reset I have to type ‘continue’ by hand.”
+          </blockquote>
+          <a href="https://github.com/anomalyco/opencode/issues/43126"
+            >anomalyco/opencode#43126 <svg class="ic"><use href="#i-out" /></svg
+          ></a>
+        </li>
+        <li>
+          <h3>Waking up to a task that stopped at 2 AM</h3>
+          <blockquote>“I was asleep at 6:34 AM. The agent could have just kept going.”</blockquote>
+          <a href="https://github.com/openai/codex/issues/21073"
+            >openai/codex#21073 <svg class="ic"><use href="#i-out" /></svg
+          ></a>
+        </li>
+      </ol>
+      <h2 class="how-title">What wsb does instead</h2>
+      <ul class="how">
+        <li>
+          Reads the reset time from the provider. It doesn’t watch your screen or type for you.
+        </li>
+        <li>Sends nothing to the model until the reset, so no attempts are burned.</li>
+        <li>
+          Shows in OpenCode how long is left, then continues the same turn with the same model.
+        </li>
+        <li>Your own prompt or Esc always wins.</li>
+      </ul>
+      <p class="fine">
+        OpenCode has to be running when the limit resets. If the provider gives no reset time,
+        OpenCode’s normal retry runs as usual.
+      </p>
+    </section>
 
     <footer class="foot"><span>MIT</span><a href="https://github.com/tsu-ld/wsb">source</a></footer>
   </body>

@@ -68,15 +68,21 @@ void main() {
 
 const body = document.body
 const still = matchMedia('(prefers-reduced-motion: reduce)').matches
-const lines = [...document.querySelectorAll('.ln[data-at]')].map((el) => ({
-  el,
-  at: Number(el.dataset.at),
-}))
-const typed = document.querySelector('.typed')
 const screen = document.querySelector('.screen')
-const arc = document.querySelector('.ring .arc')
+const typed = document.querySelector('.typed')
+const you = document.querySelector('.you')
+const clock = document.querySelector('.bar .now')
+const hold = document.querySelector('.hold')
+const left = document.querySelector('.hold .left')
+const retryText = document.querySelector('.retry-text')
+const footStatus = document.querySelector('.foot-line .st')
 const PROMPT = 'refactor the search index and run the tests'
-const LOOP = 20
+const LOOP = 21
+const LIMIT = 3.15
+const HOLD = 3.5
+const RESET = 10.85
+const DONE = 12.5
+const WAIT = 2160
 
 const canvas = document.querySelector('.room')
 const gl = canvas.getContext('webgl', { antialias: false })
@@ -111,164 +117,190 @@ if (gl && !software) {
       gl.getUniformLocation(program, name),
     ]),
   )
-  let scale = 1
+  let glow = [0, 0]
   const resize = () => {
-    scale = Math.min(devicePixelRatio || 1, 2) * 0.5
+    const scale = Math.min(devicePixelRatio || 1, 2) * 0.5
     canvas.width = Math.round(innerWidth * scale)
     canvas.height = Math.round(innerHeight * scale)
     gl.viewport(0, 0, canvas.width, canvas.height)
+    const box = screen.getBoundingClientRect()
+    glow = [(box.x + box.width / 2) / innerHeight, 1 - (box.y + box.height / 2) / innerHeight]
   }
   resize()
   addEventListener('resize', resize)
+  addEventListener('scroll', resize, { passive: true })
   paint = (time, day, lit) => {
-    const box = screen.getBoundingClientRect()
     gl.uniform2f(u.uRes, canvas.width, canvas.height)
     gl.uniform1f(u.uTime, time)
     gl.uniform1f(u.uDay, day)
     gl.uniform1f(u.uScreen, lit)
-    gl.uniform2f(
-      u.uGlow,
-      (box.x + box.width / 2) / innerHeight,
-      1 - (box.y + box.height / 2) / innerHeight,
-    )
+    gl.uniform2f(u.uGlow, glow[0], glow[1])
     gl.drawArrays(gl.TRIANGLES, 0, 3)
   }
 }
 
-const SEGS = {
-  a: [5, 0, 30, 6],
-  b: [34, 5, 6, 28],
-  c: [34, 37, 6, 28],
-  d: [5, 64, 30, 6],
-  e: [0, 37, 6, 28],
-  f: [0, 5, 6, 28],
-  g: [5, 32, 30, 6],
-}
-const DIGITS = [
-  'abcdef',
-  'bc',
-  'abged',
-  'abgcd',
-  'fgbc',
-  'afgcd',
-  'afgedc',
-  'abc',
-  'abcdefg',
-  'abcdfg',
-]
-const NS = 'http://www.w3.org/2000/svg'
-const seg7 = document.querySelector('.seg7')
-const rect = (attrs) => {
-  const el = document.createElementNS(NS, 'rect')
-  for (const [key, value] of Object.entries(attrs)) {
-    el.setAttribute(key, String(value))
-  }
-  seg7.append(el)
-  return el
-}
-const cells = [0, 44, 112, 156].map((x) =>
-  Object.fromEntries(
-    Object.entries(SEGS).map(([name, [sx, sy, w, h]]) => [
-      name,
-      rect({ x: x + sx, y: sy, width: w, height: h, rx: 2 }),
-    ]),
-  ),
-)
-rect({ x: 95, y: 20, width: 7, height: 7, rx: 2, class: 'lit' })
-rect({ x: 95, y: 44, width: 7, height: 7, rx: 2, class: 'lit' })
-
-const now = document.querySelector('.now')
-const reels = []
-for (let i = 0; i < 4; i++) {
-  if (i === 2) {
-    now.append(':')
-  }
-  const cell = document.createElement('span')
-  const strip = document.createElement('span')
-  cell.className = 'reel'
-  strip.textContent = '0123456789'
-  cell.append(strip)
-  now.append(cell)
-  reels.push(strip)
-}
-
 const clamp = (v) => Math.min(1, Math.max(0, v))
-const ease = (t) => t * t * (3 - 2 * t)
-const hhmm = (m) =>
-  `${String(Math.floor(m / 60)).padStart(2, '0')}${String(Math.floor(m % 60)).padStart(2, '0')}`
+const pad = (n) => String(n).padStart(2, '0')
+const clockAt = (minutes) =>
+  `${pad(Math.floor(minutes / 60) % 24)}:${pad(Math.floor(minutes % 60))}`
+const ms = (s) => (s < 1 ? `${Math.round(s * 1000)} ms` : `${s.toFixed(1)} s`)
+
+function countdown(seconds) {
+  if (seconds >= 86_400) {
+    return `${Math.floor(seconds / 86_400)}d ${Math.floor((seconds % 86_400) / 3600)}h`
+  }
+  if (seconds >= 3600) {
+    return `${Math.floor(seconds / 3600)}h ${pad(Math.floor((seconds % 3600) / 60))}m`
+  }
+  return `${Math.floor(seconds / 60)}m ${pad(seconds % 60)}s`
+}
+
+function compact(seconds) {
+  if (seconds >= 86_400) {
+    return `${Math.floor(seconds / 86_400)}d`
+  }
+  if (seconds >= 3600) {
+    return `${Math.floor(seconds / 3600)}h ${pad(Math.floor((seconds % 3600) / 60))}m`
+  }
+  if (seconds >= 60) {
+    return `${Math.floor(seconds / 60)}m`
+  }
+  return `${seconds}s`
+}
+
+const items = [...document.querySelectorAll('.item[data-start]')].map((el) => ({
+  el,
+  start: Number(el.dataset.start),
+  end: Number(el.dataset.end ?? Number.POSITIVE_INFINITY),
+  persist: !el.classList.contains('retry'),
+}))
+const rows = [...document.querySelectorAll('.item.row')].map((el) => ({
+  el,
+  start: Number(el.dataset.start),
+  end: Number(el.dataset.end),
+  res: el.dataset.res || '',
+  tm: el.querySelector('.tm'),
+  out: el.querySelector('.res'),
+}))
+
+const setAttr = (el, name, on, value = '') => {
+  if (on && el.getAttribute(name) !== value) {
+    el.setAttribute(name, value)
+  } else if (!on && el.hasAttribute(name)) {
+    el.removeAttribute(name)
+  }
+}
+
+function remainingAt(t) {
+  if (t < HOLD) {
+    return WAIT
+  }
+  if (t < RESET) {
+    return Math.round(WAIT * (1 - clamp((t - HOLD) / (RESET - HOLD))))
+  }
+  return 0
+}
 
 function minutesAt(t) {
-  if (t < 4.1) {
-    return 132 + 29 * clamp(t / 4.1)
+  if (t < RESET) {
+    return 197 - remainingAt(t) / 60
   }
-  if (t < 10.6) {
-    return 161 + 36 * ease(clamp((t - 5.4) / 4.8))
+  if (t < DONE) {
+    return 197 + 7 * clamp((t - RESET) / (DONE - RESET))
   }
-  if (t < 13.6) {
-    return 197 + 7 * clamp((t - 10.6) / 2.2)
-  }
-  return 535
+  return 204
 }
 
-const phaseAt = (t) =>
-  t < 4.1
-    ? 'work'
-    : t < 5
-      ? 'limit'
-      : t < 10.6
-        ? 'sleep'
-        : t < 13.6
-          ? 'back'
-          : t < 19.2
-            ? 'day'
-            : 'dusk'
-
-let shown = ''
 let day = 0
 let lit = 1
+let lastT = 0
+let lastSeconds = 0
+let lastClock = ''
+let lastLeft = ''
+let lastStatus = ''
 function render(t, seconds) {
-  const phase = phaseAt(t)
-  if (body.dataset.phase !== phase) {
-    body.dataset.phase = phase
-  }
-  for (const line of lines) {
-    const on = t >= line.at
-    if (line.el.classList.contains('on') !== on) {
-      line.el.classList.toggle('on', on)
+  if (t < lastT) {
+    for (const item of items) {
+      item.el.removeAttribute('data-on')
+    }
+    for (const row of rows) {
+      row.el.removeAttribute('data-status')
     }
   }
+  lastT = t
+  const out = t >= LIMIT && t < RESET
+  setAttr(body, 'data-word', true, out ? 'over' : 'back')
+  setAttr(body, 'data-sweep', t >= RESET && t < RESET + 0.4)
+
   const chars = Math.round(clamp((t - 0.2) / 1.3) * PROMPT.length)
   if (typed.textContent.length !== chars) {
     typed.textContent = PROMPT.slice(0, chars)
   }
-  arc.style.strokeDashoffset = (1 - clamp((t - 5.4) / 4.8)).toFixed(3)
-  const label = hhmm(minutesAt(t))
-  if (label !== shown) {
-    shown = label
-    reels.forEach((strip, i) => {
-      strip.style.transform = `translateY(${-1.2 * Number(label[i])}em)`
-    })
-    cells.forEach((cell, i) => {
-      const on = DIGITS[Number(label[i])]
-      for (const [name, el] of Object.entries(cell)) {
-        el.classList.toggle('lit', on.includes(name))
-      }
-    })
+  you.classList.toggle('typed-out', t > 1.65)
+
+  for (const item of items) {
+    setAttr(item.el, 'data-on', t >= item.start && (item.persist || t < item.end))
   }
-  const dayTarget = phase === 'day' ? 1 : 0
-  const litTarget = phase === 'sleep' ? 0 : 1
-  day += (dayTarget - day) * 0.045
-  lit += (litTarget - lit) * 0.08
-  const time = day > 0.5 ? 'day' : 'night'
-  if (body.dataset.time !== time) {
-    body.dataset.time = time
+
+  for (const row of rows) {
+    const state = t < row.start ? 'hidden' : t < row.end ? 'running' : 'done'
+    if (row.el.dataset.status !== state) {
+      row.el.dataset.status = state
+    }
+    const p = state === 'running' ? 0.9 * clamp((t - row.start) / (row.end - row.start)) : 1
+    row.el.style.setProperty('--p', p.toFixed(3))
+    const tm = state === 'done' ? ms((Math.min(t, row.end) - row.start) * 0.6) : ''
+    if (row.tm.textContent !== tm) {
+      row.tm.textContent = tm
+    }
+    const res = state === 'done' ? row.res : ''
+    if (row.out.textContent !== res) {
+      row.out.textContent = res
+    }
   }
+
+  const open = t >= HOLD && t < RESET
+  setAttr(hold, 'data-open', open)
+  hold.style.setProperty('--p', clamp((t - HOLD) / (RESET - HOLD)).toFixed(3))
+  const remaining = remainingAt(t)
+  if (open && lastLeft !== countdown(remaining)) {
+    lastLeft = countdown(remaining)
+    left.textContent = lastLeft
+  }
+  const status = open ? `wsb ${compact(remaining)}` : ''
+  if (lastStatus !== status) {
+    lastStatus = status
+    footStatus.textContent = status
+  }
+  const retry = remaining > 0 ? `Retrying in ${remaining}s` : 'Retry due'
+  if (retryText.textContent !== retry) {
+    retryText.textContent = retry
+  }
+  const label = clockAt(minutesAt(t))
+  if (lastClock !== label) {
+    lastClock = label
+    clock.textContent = label
+  }
+
+  const dayTarget = t >= 13.6 && t < 20.3 ? 1 : 0
+  const litTarget = out ? 1.7 : 1
+  const dt = Math.min(0.1, Math.max(0, seconds - lastSeconds))
+  lastSeconds = seconds
+  day += (dayTarget - day) * (1 - Math.exp(-dt * 2.6))
+  lit += (litTarget - lit) * (1 - Math.exp(-dt * 4.8))
+  setAttr(body, 'data-time', true, day > 0.5 ? 'day' : 'night')
   paint(seconds, day, lit)
 }
 
 const start = performance.now()
-function frame(ms) {
-  render(((ms - start) / 1000) % LOOP, ms / 1000)
+let visible = true
+new IntersectionObserver(([entry]) => {
+  visible = entry.isIntersecting
+}).observe(screen)
+function frame(now) {
+  if (visible) {
+    render(((now - start) / 1000) % LOOP, now / 1000)
+  }
   requestAnimationFrame(frame)
 }
 
@@ -279,78 +311,127 @@ if (still) {
   requestAnimationFrame(frame)
 }
 
+const reveals = document.querySelectorAll('.costs, .how')
+const seen = new IntersectionObserver(
+  (entries) => {
+    for (const entry of entries) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('in')
+        seen.unobserve(entry.target)
+      }
+    }
+  },
+  { threshold: 0.2 },
+)
+for (const list of reveals) {
+  list.classList.add('reveal')
+  ;[...list.children].forEach((item, i) => item.style.setProperty('--i', String(i)))
+  seen.observe(list)
+}
+
 const field = document.getElementById('install')
 const tabs = [...document.querySelectorAll('[role="tab"]')]
 const pbar = document.querySelector('.pbar')
 const copy = document.querySelector('.send')
 const status = document.querySelector('.status')
-const msg = document.querySelector('.pin .msg')
-const current = () => tabs.find((tab) => tab.getAttribute('aria-selected') === 'true').dataset.text
-let typing = 0
+const msg = document.querySelector('.pin .msg span')
+const thumb = document.querySelector('.thumb')
+const OUT = 'cubic-bezier(0.23, 1, 0.32, 1)'
+const selected = () => tabs.find((tab) => tab.getAttribute('aria-selected') === 'true')
 let timer = 0
 
-function typeIn(text) {
-  cancelAnimationFrame(typing)
+function moveThumb() {
+  const tab = selected()
+  thumb.style.width = `${tab.offsetWidth}px`
+  thumb.style.transform = `translateX(${tab.offsetLeft}px)`
+}
+
+function reset() {
+  clearTimeout(timer)
+  pbar.classList.remove('sent', 'failed')
+}
+
+async function swapText(text) {
   if (still) {
     field.value = text
     return
   }
-  const start = performance.now()
-  const step = (now) => {
-    const n = Math.min(text.length, Math.round((now - start) / 11))
-    field.value = text.slice(0, n)
-    if (n < text.length) {
-      typing = requestAnimationFrame(step)
-    }
+  await field.animate(
+    [{ transform: 'none' }, { transform: 'translateY(-70%)', filter: 'blur(3px)', opacity: 0 }],
+    {
+      duration: 160,
+      easing: OUT,
+    },
+  ).finished
+  field.value = text
+  field.animate(
+    [{ transform: 'translateY(70%)', filter: 'blur(3px)', opacity: 0 }, { transform: 'none' }],
+    {
+      duration: 240,
+      easing: OUT,
+    },
+  )
+}
+
+function select(tab) {
+  if (tab === selected()) {
+    return
   }
-  typing = requestAnimationFrame(step)
+  for (const other of tabs) {
+    other.setAttribute('aria-selected', String(other === tab))
+    other.tabIndex = other === tab ? 0 : -1
+  }
+  reset()
+  moveThumb()
+  void swapText(tab.dataset.text)
 }
 
 for (const tab of tabs) {
-  tab.addEventListener('click', () => {
-    for (const other of tabs) {
-      other.setAttribute('aria-selected', String(other === tab))
+  tab.tabIndex = tab === selected() ? 0 : -1
+  tab.addEventListener('click', () => select(tab))
+  tab.addEventListener('keydown', (event) => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+      return
     }
-    moveThumb()
-    pbar.classList.remove('sent')
-    typeIn(tab.dataset.text)
+    const next =
+      tabs[(tabs.indexOf(tab) + (event.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length]
+    select(next)
+    next.focus()
   })
 }
 
-const thumb = document.querySelector('.thumb')
-function moveThumb() {
-  const tab = tabs.find((item) => item.getAttribute('aria-selected') === 'true')
-  thumb.style.width = `${tab.offsetWidth}px`
-  thumb.style.transform = `translateX(${tab.offsetLeft}px)`
-}
 moveThumb()
 addEventListener('resize', moveThumb)
+document.fonts.addEventListener('loadingdone', moveThumb)
 field.addEventListener('focus', () => field.select())
-setTimeout(() => typeIn(current()), 500)
 
+function announce(text) {
+  status.textContent = ''
+  requestAnimationFrame(() => {
+    status.textContent = text
+  })
+}
+
+async function copyText() {
+  const text = selected().dataset.text
+  reset()
+  void pbar.offsetWidth
+  try {
+    await navigator.clipboard.writeText(text)
+    const where = selected() === tabs[0] ? 'your agent' : 'a terminal'
+    msg.textContent = `Copied. Paste it into ${where}.`
+    announce(msg.textContent)
+    pbar.classList.add('sent')
+    timer = setTimeout(reset, 1900)
+  } catch {
+    field.focus()
+    field.select()
+    pbar.classList.add('failed')
+    announce('Text selected. Press Ctrl+C or Command+C to copy.')
+  }
+}
 copy.addEventListener('click', () => {
-  const text = current()
-  navigator.clipboard.writeText(text).then(
-    () => {
-      const where = tabs[0].getAttribute('aria-selected') === 'true' ? 'your agent' : 'a terminal'
-      status.textContent = `Copied. Paste it into ${where}.`
-      msg.textContent = status.textContent
-      cancelAnimationFrame(typing)
-      pbar.classList.remove('sent')
-      void pbar.offsetWidth
-      pbar.classList.add('sent')
-      clearTimeout(timer)
-      timer = setTimeout(() => {
-        pbar.classList.remove('sent')
-        typeIn(text)
-      }, 1900)
-    },
-    () => {
-      field.value = text
-      field.focus()
-      status.textContent = 'Text selected. Press Ctrl+C or Command+C to copy.'
-    },
-  )
+  void copyText()
 })
 
 const INSTALL = {
