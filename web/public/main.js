@@ -149,7 +149,9 @@ addEventListener('pointermove', (e) => {
 
 const clamp = (v) => Math.min(1, Math.max(0, v))
 const ease = (t) => t * t * (3 - 2 * t)
-const loopStart = performance.now() / 1000 + 0.6
+let loopStart = performance.now() / 1000 + 0.6
+const head = document.querySelector('.head')
+const scrub = document.querySelector('.scrub')
 const GLYPHS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#%&*/<>'
 const words = { over: document.querySelector('.w-over'), back: document.querySelector('.w-back') }
 const finals = { over: words.over.textContent, back: words.back.textContent }
@@ -248,9 +250,10 @@ function frame(now) {
   set('tag', t >= 4.4 && t < 7.6 ? 'without' : t >= 7.9 ? 'with' : 'none')
   body.classList.toggle('rewind', t >= 7.4 && t < 8.2)
 
-  const chars = Math.round(clamp((t - 0.2) / 1.4) * PROMPT.length)
+  const chars = t < 1.6 ? Math.round(clamp((t - 0.2) / 1.2) * PROMPT.length) : 0
   if (typed.textContent.length !== chars) {
     typed.textContent = PROMPT.slice(0, chars)
+    typed.parentElement.classList.toggle('typing', chars > 0)
   }
   for (const line of lines) {
     const on = t >= line.at && t < line.until
@@ -266,12 +269,21 @@ function frame(now) {
     flap(label)
     sky.querySelector('use').setAttribute('href', minutes >= 420 ? '#i-sun' : '#i-moon')
   }
+  head.style.setProperty('--x', ((t / LOOP) * scrub.clientWidth).toFixed(1))
   requestAnimationFrame(frame)
+}
+
+for (const button of document.querySelectorAll('[data-seek]')) {
+  button.addEventListener('click', () => {
+    loopStart = performance.now() / 1000 - Number(button.dataset.seek)
+    for (const line of lines) {
+      line.el.classList.remove('on')
+    }
+  })
 }
 
 draw(0, 0, [0, 0, -1])
 if (still) {
-  typed.textContent = PROMPT
   for (const line of lines) {
     line.el.classList.toggle('on', !line.el.classList.contains('bad'))
   }
@@ -373,4 +385,37 @@ if (!still && matchMedia('(pointer: fine)').matches) {
     const near = Math.hypot(dx, dy) < 110
     copy.style.translate = near ? `${dx * 0.12}px ${dy * 0.18}px` : '0 0'
   })
+}
+
+const INSTALL = {
+  agent: tabs[0].dataset.text,
+  terminal: tabs[1].dataset.text,
+}
+async function registerTools() {
+  if (!document.modelContext?.registerTool) {
+    return
+  }
+  await document.modelContext.registerTool({
+    name: 'get_wsb_install',
+    description:
+      'Get the instructions to install wsb, an OpenCode plugin that waits for a subscription usage limit to reset and retries the same turn.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        method: {
+          type: 'string',
+          enum: ['agent', 'terminal'],
+          description: 'agent: a prompt to paste into a coding agent. terminal: the shell command.',
+        },
+      },
+    },
+    annotations: { readOnlyHint: true },
+    execute: ({ method = 'terminal' }) =>
+      `${INSTALL[method] ?? INSTALL.terminal}\nRequires OpenCode 2.3+. Works with Claude Max (opencode-with-claude), ChatGPT/Codex and OpenCode Go. Docs: https://wsb.tsu.ar/llms.txt`,
+  })
+}
+try {
+  await registerTools()
+} catch {
+  status.textContent = ''
 }

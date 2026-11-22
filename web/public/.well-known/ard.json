@@ -1,0 +1,30 @@
+{
+  "entries": [
+    {
+      "@context": "https://agenticresourcediscovery.org/context/v1",
+      "identifier": "urn:air:wsb.tsu.ar:opencode-plugin:wsb",
+      "displayName": "wsb",
+      "type": "application/agent-plugins+gzip",
+      "url": "https://github.com/tsu-ld/wsb/archive/refs/heads/production.tar.gz",
+      "description": "OpenCode plugin that waits for a subscription usage limit to reset and retries the same turn with the same model. Supports Claude Max (via opencode-with-claude), ChatGPT/Codex and OpenCode Go. Install: opencode plugin add git+https://github.com/tsu-ld/wsb.git#production",
+      "capabilities": ["ResumeAfterUsageLimit", "WaitForQuotaReset"],
+      "tags": [
+        "opencode",
+        "plugin",
+        "usage-limit",
+        "rate-limit",
+        "claude-max",
+        "codex",
+        "opencode-go"
+      ],
+      "representativeQueries": [
+        "resume my opencode session automatically when the claude max usage limit resets",
+        "opencode plugin that waits for the rate limit reset and continues",
+        "stop typing continue after codex usage limit in opencode",
+        "auto retry opencode turn when opencode go quota resets"
+      ],
+      "version": "0.1.0",
+      "updatedAt": "2026-11-22T05:00:00Z"
+    }
+  ]
+}

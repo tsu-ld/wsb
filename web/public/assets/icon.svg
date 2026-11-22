@@ -1,6 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-  <title>wsb</title>
-  <path fill="#171714" d="M2 3 61 2 63 62 2 61z"/>
-  <path fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="4.6" d="m10 19 10-2 7 29 13 1 8-29 7-1m-6-4 6 4-4 6"/>
-  <path fill="#fff" d="m10 23 7-2 3 7-1-6zm19 27 10 1 3-3-3 2z"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><title>wsb</title><rect width="64" height="64" rx="12" fill="#09080c"/><rect x="13" y="14" width="10" height="36" fill="#f4f3f7"/><rect x="27" y="38" width="10" height="12" fill="#ff4a1c"/><rect x="41" y="14" width="10" height="36" fill="#a6f4e6"/></svg>

@@ -1,0 +1,47 @@
+# wsb
+
+> wsb is a free, open-source (MIT) plugin for OpenCode. When an OpenCode session hits a subscription usage limit (Claude Max, ChatGPT/Codex or OpenCode Go), wsb waits until the limit resets and OpenCode retries the same turn with the same model. Nobody has to type "continue".
+
+## Install
+
+Run once in a terminal (OpenCode 2.3 or newer):
+
+```sh
+opencode plugin add git+https://github.com/tsu-ld/wsb.git#production
+```
+
+Or paste this into a coding agent:
+
+> Install the wsb plugin for my OpenCode user: run `opencode plugin add git+https://github.com/tsu-ld/wsb.git#production` and check that it loads.
+
+To uninstall, remove the wsb entry from `plugins` in the OpenCode config.
+
+## How it works
+
+1. The provider refuses a request because the subscription usage limit is reached.
+2. wsb reads the exact reset time for that account and model: from the error itself, from the provider's usage endpoint (ChatGPT, OpenCode Go) or from the local Meridian proxy used by opencode-with-claude (Claude Max).
+3. It tells OpenCode's own retry to wait until that time. If OpenCode restarts in between, the deadline is kept and the turn resumes on time.
+4. At the reset, OpenCode retries the same turn. No new session, no provider switch, no polling the model.
+
+If the reset time is unknown, wsb leaves OpenCode's normal retry behaviour alone. A manual prompt or an interrupt always wins.
+
+## Supported subscriptions
+
+- Claude Max, through opencode-with-claude (Meridian proxy)
+- ChatGPT / Codex, signed in with OAuth
+- OpenCode Go (five-hour, weekly and monthly limits)
+
+Metered OpenAI and Anthropic API keys are not supported.
+
+## FAQ
+
+- Does it bypass usage limits? No. It waits for the reset the provider reports.
+- Does it spend extra quota? No. It never sends a request before the reset.
+- Does it work with OpenCode 1.x? No, it targets OpenCode 2.3+.
+
+## Links
+
+- [Website](https://wsb.tsu.ar/): demo of the problem and the fix, and one-click install
+- [Source code](https://github.com/tsu-ld/wsb): MIT-licensed repository with tests
+- [Architecture](https://github.com/tsu-ld/wsb/blob/production/ARCHITECTURE.md): how the plugin decides when to retry and how to add a provider
+- [OpenCode plugins](https://opencode.ai/docs/build/plugins): official docs on installing and building OpenCode plugins
