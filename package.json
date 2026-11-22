@@ -6,17 +6,18 @@
   "license": "MIT",
   "files": [
     "src",
-    "tsconfig.json"
+    "dist"
   ],
   "type": "module",
   "exports": {
     ".": "./src/index.js",
-    "./tui": "./src/tui.tsx",
+    "./tui": "./dist/tui.js",
     "./rpc": "./src/rpc.ts"
   },
   "scripts": {
     "test": "bun test",
-    "check": "bun fmt && oxlint --fix --format=agent && bun check"
+    "check": "bun fmt && oxlint --fix --format=agent && bun check",
+    "build": "bun scripts/build.js"
   },
   "devDependencies": {
     "@cloudflare/oxlint-config": "0.1.0",

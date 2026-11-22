@@ -14,7 +14,7 @@ jobs:
         with:
           bun-version: 1.4.5
       - run: bun install --frozen-lockfile
-      - run: bun check && git diff --exit-code && bun test
+      - run: bun run build && bun check && git diff --exit-code && bun test
       - name: Install the verified OpenCode release
         working-directory: ${{ runner.temp }}
         run: |

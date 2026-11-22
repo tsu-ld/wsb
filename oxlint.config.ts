@@ -11,7 +11,9 @@ export default defineConfig({
     '.codex/**',
     '.cursor/**',
     '.opencode/**',
+    'dist/**',
   ],
+  env: { bun: true, browser: true, node: true },
   jsPlugins: [...(cloudflare.jsPlugins ?? []), { name: 'local', specifier: './local-rules.js' }],
   rules: {
     ...cloudflare.rules,
