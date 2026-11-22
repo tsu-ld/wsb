@@ -1,2 +1,4 @@
-.ulw/
+.lighthouseci/
 node_modules/
+.ulw/
+.wrangler/

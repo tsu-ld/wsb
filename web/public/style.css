@@ -1,0 +1,257 @@
+:root {
+  color-scheme: light;
+  --ink: #171714;
+  --paper: #f9f8f4;
+  --muted: #4c4a44;
+  --rule: #bcb9ae;
+  --mono: "Courier New", Courier, monospace;
+  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+p,
+h1,
+h2,
+figure,
+dl,
+dd,
+pre {
+  margin: 0;
+}
+a {
+  color: inherit;
+  text-underline-offset: 0.24em;
+}
+a:hover {
+  text-decoration-thickness: 2px;
+}
+:is(a, button, textarea):focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+}
+code {
+  font-family: var(--mono);
+}
+
+.wrap {
+  width: min(1168px, calc(100% - 2 * clamp(20px, 4.4vw, 64px)));
+  margin-inline: auto;
+}
+
+.masthead,
+footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-block: 19px;
+  font: 700 0.81rem/1.4 var(--mono);
+}
+
+.masthead {
+  border-bottom: 2px solid;
+}
+.imprint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.masthead a,
+footer a {
+  padding-block: 6px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: clamp(20px, 4.8vw, 72px);
+  align-items: center;
+  padding-block: clamp(36px, 5vw, 76px) clamp(32px, 4.2vw, 60px);
+}
+
+.eyebrow,
+figcaption {
+  font: 700 0.75rem/1.4 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.intro {
+  padding-bottom: 24px;
+}
+h1 {
+  margin: 0.085em 0 0.23em -0.055em;
+  font-size: clamp(3rem, 8.2vw, 7.7rem);
+  font-weight: 900;
+  letter-spacing: -0.095em;
+  line-height: 0.93;
+}
+
+.lede {
+  max-width: 30ch;
+  font:
+    clamp(1.18rem, 1.85vw, 1.44rem)/1.38 Georgia,
+    'Times New Roman',
+    serif;
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.65em;
+  min-height: 46px;
+  margin-top: 28px;
+  padding: 0.62em 0.9em;
+  border: 2px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  font: 700 0.875rem/1.2 var(--mono);
+  text-decoration: none;
+}
+
+.action:hover {
+  background: var(--paper);
+  color: var(--ink);
+}
+.action:focus-visible {
+  outline-color: var(--ink);
+}
+.action span {
+  font-size: 1.2em;
+}
+.print {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 2px solid;
+  background: #fff;
+}
+figcaption {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75em;
+  padding-top: 9px;
+}
+
+.install {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 7fr);
+  gap: clamp(16px, 4vw, 56px);
+  border-top: 2px solid;
+  padding-block: clamp(30px, 3.6vw, 50px);
+  scroll-margin-top: 16px;
+}
+
+h2 {
+  margin-top: 0.16em;
+  font-size: clamp(2.35rem, 4.7vw, 4.1rem);
+  line-height: 0.98;
+  letter-spacing: -0.075em;
+}
+
+.details {
+  min-width: 0;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+}
+.copy-block {
+  margin-bottom: 16px;
+}
+.copy-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font: 700 0.875rem/1.3 var(--mono);
+}
+.copy {
+  min-height: 42px;
+  padding: 0.4em 0.7em;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+.copy:hover {
+  color: var(--ink);
+  background: var(--paper);
+}
+textarea {
+  display: block;
+  field-sizing: content;
+  width: 100%;
+  padding: clamp(12px, 1.5vw, 17px);
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: #fff;
+  color: var(--ink);
+  font: 0.9375rem/1.5 var(--mono);
+  resize: vertical;
+}
+
+.fine {
+  color: var(--muted);
+  font-size: 0.925rem;
+}
+.copy-status:not(:empty) {
+  margin-top: 5px;
+}
+noscript .fine {
+  margin-bottom: 10px;
+}
+dl {
+  margin-bottom: 18px;
+}
+dl div {
+  display: grid;
+  grid-template-columns: minmax(9.2em, 1fr) 3fr;
+  gap: 10px 18px;
+  padding-block: 13px;
+  border-bottom: 1px solid var(--rule);
+}
+dl div:first-child {
+  padding-top: 0;
+}
+dt {
+  font-weight: 700;
+}
+dd code {
+  overflow-wrap: anywhere;
+}
+footer {
+  border-top: 2px solid;
+}
+
+@media (max-width: 760px) {
+  .hero,
+  .install {
+    grid-template-columns: 1fr;
+  }
+  .hero {
+    gap: 28px;
+  }
+  .intro {
+    padding-bottom: 0;
+  }
+  h1 {
+    font-size: clamp(3.2rem, 16vw, 7.4rem);
+  }
+  .masthead,
+  footer {
+    padding-block: 12px;
+  }
+  dl div {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+}

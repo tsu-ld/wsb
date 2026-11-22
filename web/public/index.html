@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="We’re So Back is an OpenCode plugin that waits for your subscription quota to reset and retries the same turn."
+    />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#f9f8f4" />
+    <title>We’re So Back: resume OpenCode after a quota reset</title>
+    <link rel="canonical" href="https://weresoback.tsu.ar/" />
+    <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="style.css" />
+    <script src="copy.js" defer></script>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="We’re So Back" />
+    <meta property="og:title" content="We’re So Back: resume OpenCode after a quota reset" />
+    <meta
+      property="og:description"
+      content="Hit a subscription limit? Wait for the reset and retry the same OpenCode turn."
+    />
+    <meta property="og:url" content="https://weresoback.tsu.ar/" />
+    <meta property="og:image" content="https://weresoback.tsu.ar/assets/social.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="640" />
+    <meta
+      property="og:image:alt"
+      content="We’re So Back. An ink line falls at the quota limit, goes flat while waiting for the reset, and bounces up when the turn retries."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="We’re So Back: resume OpenCode after a quota reset" />
+    <meta
+      name="twitter:description"
+      content="Hit a subscription limit? Wait for the reset and retry the same OpenCode turn."
+    />
+    <meta name="twitter:image" content="https://weresoback.tsu.ar/assets/social.png" />
+    <meta
+      name="twitter:image:alt"
+      content="We’re So Back. An ink line falls at the quota limit, goes flat while waiting for the reset, and bounces up when the turn retries."
+    />
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="hero" aria-labelledby="title">
+        <div class="intro">
+          <h1 id="title">
+            We’re So<br />
+            Back
+          </h1>
+          <p class="lede">
+            OpenCode plugin. When your subscription hits its usage limit, it waits for the reset and
+            retries the same turn.
+          </p>
+        </div>
+        <img
+          class="print"
+          src="assets/banner.svg"
+          width="720"
+          height="498"
+          alt="A line drops when quota runs out: “it’s so over.” It stays flat until the reset, then shoots up: “we’re so back.”"
+        />
+      </section>
+      <section id="install" class="install" aria-labelledby="install-title">
+        <h2 id="install-title">Install</h2>
+        <div class="details">
+          <div class="copy-block">
+            <div class="copy-head">
+              <label for="prompt">Give this to your agent</label>
+              <button class="copy" type="button" data-copy="prompt" hidden>Copy</button>
+            </div>
+            <textarea id="prompt" rows="4" readonly>
+Install the We’re So Back plugin for my OpenCode user: run `opencode plugin add git+https://github.com/tsu-ld/opencode-quota-resume.git#production` and check that the quota-resume plugin loads.</textarea>
+            <p class="copy-status fine" role="status"></p>
+          </div>
+          <div class="copy-block">
+            <div class="copy-head">
+              <label for="command">Or run it yourself</label>
+              <button class="copy" type="button" data-copy="command" hidden>Copy</button>
+            </div>
+            <textarea id="command" rows="2" readonly>
+opencode plugin add git+https://github.com/tsu-ld/opencode-quota-resume.git#production</textarea>
+            <p class="copy-status fine" role="status"></p>
+          </div>
+          <p class="fine">
+            Works with Claude Max (via opencode-with-claude), ChatGPT/Codex and OpenCode Go.
+          </p>
+        </div>
+      </section>
+    </main>
+    <footer class="wrap">
+      <p>MIT</p>
+      <a href="https://github.com/tsu-ld/opencode-quota-resume"
+        >GitHub <span aria-hidden="true">↗</span></a
+      >
+    </footer>
+  </body>
+</html>

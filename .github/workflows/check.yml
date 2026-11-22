@@ -24,3 +24,18 @@ jobs:
           tar -xzf opencode.tar.gz -C host
           dirname "$(find "$PWD/host" -name opencode -type f -print -quit)" >> "$GITHUB_PATH"
       - run: opencode --version && bun scripts/e2e.js
+  web:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: 1.4.5
+      - run: bun og-check.ts public
+      - run: bunx @lhci/cli@0.16.1 autorun --config=lighthouserc.json --collect.staticDistDir=./public --collect.maxAutodiscoverUrls=0

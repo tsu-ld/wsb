@@ -1,0 +1,18 @@
+{
+  "ci": {
+    "collect": { "numberOfRuns": 3 },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["error", { "minScore": 1, "aggregationMethod": "median" }],
+        "categories:accessibility": ["error", { "minScore": 1, "aggregationMethod": "median" }],
+        "categories:best-practices": ["error", { "minScore": 1, "aggregationMethod": "median" }],
+        "categories:seo": ["error", { "minScore": 1, "aggregationMethod": "median" }],
+        "resource-summary:script:size": [
+          "error",
+          { "maxNumericValue": 173056, "aggregationMethod": "median" }
+        ]
+      }
+    },
+    "upload": { "target": "filesystem", "outputDir": ".lighthouseci/reports" }
+  }
+}
