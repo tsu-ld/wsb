@@ -16,8 +16,7 @@
   },
   "scripts": {
     "test": "bun test",
-    "check": "bun fmt && oxlint --fix --format=agent && bun check",
-    "build": "bun scripts/build.js"
+    "check": "bun fmt && oxlint --fix --format=agent && bun check"
   },
   "devDependencies": {
     "@cloudflare/oxlint-config": "0.1.0",
