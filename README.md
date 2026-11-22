@@ -1,6 +1,6 @@
 # wsb
 
-[![wsb](web/public/assets/social.png)](https://wsb.tsu.ar/)
+[![wsb: it’s so over at the usage limit, we’re so back at the reset](web/public/assets/banner.png)](https://wsb.tsu.ar/)
 
 OpenCode plugin. When your subscription hits its usage limit, it waits for the reset and retries the same turn.
 
