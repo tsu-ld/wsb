@@ -77,6 +77,9 @@ const info = gl?.getExtension('WEBGL_debug_renderer_info')
 const renderer = info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : ''
 const still = matchMedia('(prefers-reduced-motion: reduce)').matches
 const software = /swiftshader|llvmpipe|software/i.test(renderer)
+if (!gl || software) {
+  body.classList.add('flat')
+}
 
 const LOOP = 12
 const DRAIN = [1.4, 3.4]
@@ -87,7 +90,7 @@ const wave = [0, 0, -1]
 const mouse = [-9999, -9999]
 let scale = 1
 
-if (gl) {
+if (gl && !software) {
   const compile = (type, source) => {
     const shader = gl.createShader(type)
     gl.shaderSource(shader, source)
@@ -147,18 +150,22 @@ function frame(now) {
   const drain = t < RESET ? ease(clamp((t - DRAIN[0]) / (DRAIN[1] - DRAIN[0]))) : 1
   const center = toCanvas(innerWidth / 2, innerHeight * 0.4)
   const reset = t >= RESET ? [center[0], center[1], time - (t - RESET)] : [0, 0, -1]
-  if (!software) {
-    draw(time, drain, reset)
-  }
+  draw(time, drain, reset)
 
   const step = t < DRAIN[0] ? 3 : t < DRAIN[1] + 0.2 ? 1 : t < RESET + 0.4 ? 2 : 3
-  body.dataset.step = String(step)
-  body.dataset.state = t > DRAIN[0] + 1.2 && t < RESET + 0.4 ? 'over' : 'back'
-  if (step === 2) {
-    const minutes = 168 + Math.round(clamp((t - DRAIN[1]) / (RESET - DRAIN[1])) * 29)
-    clock.textContent = `0${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`
-  } else {
-    clock.textContent = '03:17'
+  if (body.dataset.step !== String(step)) {
+    body.dataset.step = String(step)
+  }
+  const state = t > DRAIN[0] + 1.2 && t < RESET + 0.4 ? 'over' : 'back'
+  if (body.dataset.state !== state) {
+    body.classList.add('moved')
+    body.dataset.state = state
+  }
+  const minutes =
+    step === 2 ? 168 + Math.round(clamp((t - DRAIN[1]) / (RESET - DRAIN[1])) * 29) : 197
+  const label = `0${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`
+  if (clock.textContent !== label) {
+    clock.textContent = label
   }
   requestAnimationFrame(frame)
 }

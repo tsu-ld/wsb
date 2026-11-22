@@ -150,14 +150,16 @@ body::before {
 }
 [data-state='over'] .w-over {
   visibility: visible;
-  animation: drop 0.45s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+.moved[data-state='over'] .w-over {
+  animation: drop 0.4s cubic-bezier(0.3, 1.4, 0.5, 1) both;
 }
 [data-state='over'] .w-back {
   visibility: hidden;
 }
-[data-state='back'] .w-back {
+.moved[data-state='back'] .w-back {
   animation:
-    rise 0.5s cubic-bezier(0.2, 1.5, 0.4, 1) both,
+    rise 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both,
     sheen 6s linear infinite;
 }
 @keyframes sheen {
@@ -167,15 +169,14 @@ body::before {
 }
 @keyframes drop {
   from {
-    transform: translateY(-14%) scaleY(1.15);
-    opacity: 0;
+    transform: translateY(-10%) scaleY(1.12);
+    clip-path: inset(0 0 100% 0);
   }
 }
 @keyframes rise {
   from {
-    transform: translateY(14%) scale(0.96);
-    opacity: 0;
-    filter: blur(6px);
+    transform: translateY(10%) scale(0.97);
+    clip-path: inset(100% 0 0 0);
   }
 }
 
@@ -386,4 +387,14 @@ textarea {
   .copy {
     min-height: 44px;
   }
+}
+
+.flat .mosaic {
+  display: none;
+}
+.flat {
+  background:
+    linear-gradient(90deg, var(--bg) 6px, transparent 6px) 0 0 / 56px 56px,
+    linear-gradient(var(--bg) 6px, transparent 6px) 0 0 / 56px 56px,
+    #17161d;
 }
