@@ -25,7 +25,7 @@ const selected = process.argv[2] ? [process.argv[2]] : cases
 assert.ok(selected.every((item) => cases.includes(item)))
 
 for (const scenario of selected) {
-  const root = await mkdtemp(join(tmpdir(), 'quota-resume-'))
+  const root = await mkdtemp(join(tmpdir(), 'wsb-'))
   const config = join(root, 'config', 'opencode')
   await mkdir(config, { recursive: true })
   const sessionID = `ses_test${randomUUID().replaceAll('-', '')}`
@@ -150,7 +150,7 @@ for (const scenario of selected) {
     eventually(
       () =>
         api('/api/plugin')
-          .then((plugins) => plugins.some((p) => p.id === 'quota-resume' && !p.error))
+          .then((plugins) => plugins.some((p) => p.id === 'wsb' && !p.error))
           .catch(() => false),
       'plugin active',
     )

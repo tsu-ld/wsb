@@ -1,4 +1,4 @@
 export default {
-  id: 'quota-resume',
+  id: 'wsb',
   setup() {},
 }
