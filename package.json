@@ -5,7 +5,8 @@
   "description": "Wait for a subscription quota reset in the same OpenCode session.",
   "license": "MIT",
   "files": [
-    "src"
+    "src",
+    "tsconfig.json"
   ],
   "type": "module",
   "exports": {
