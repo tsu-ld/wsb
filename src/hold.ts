@@ -5,11 +5,6 @@ export interface Hold {
   readonly model: string
 }
 
-export interface Bar {
-  readonly filled: number
-  readonly empty: number
-}
-
 const pad = (value: number) => String(value).padStart(2, '0')
 
 export function remaining(until: number, now: number): number {
@@ -49,14 +44,14 @@ export function clock(until: number, now: number): string {
   return `${'SunMonTueWedThuFriSat'.slice(day, day + 3)} ${time}`
 }
 
-export function bar(width: number, since: number, until: number, now: number): Bar {
-  const cells = Math.max(0, Math.floor(width))
+const LEVELS = '▁▂▃▄▅▆▇█'
+
+export function rise(since: number, until: number, now: number): string {
   if (!(until > since)) {
-    return { filled: cells, empty: 0 }
+    return '█'
   }
   const ratio = Math.min(1, Math.max(0, (now - since) / (until - since)))
-  const filled = Math.min(cells, Math.round(cells * ratio))
-  return { filled, empty: cells - filled }
+  return LEVELS[Math.floor(ratio * (LEVELS.length - 1))] ?? '█'
 }
 
 export function resumeLabel(until: number, now: number): string {

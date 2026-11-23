@@ -1,10 +1,8 @@
 import type { Plugin } from '@opencode/plugin/tui'
 import { createEffect, createSignal, on, onCleanup, Show } from 'solid-js'
-import { bar, compact, remaining, resumeLabel } from './hold.ts'
+import { compact, remaining, resumeLabel, rise } from './hold.ts'
 import { Definition, changedSession, isHoldState } from './rpc.ts'
 import type { HoldState } from './rpc.ts'
-
-const CELLS = 16
 
 function useNow() {
   const [now, setNow] = createSignal(Date.now())
@@ -73,6 +71,7 @@ function Panel(props: { context: Plugin.Context; sessionID: string }) {
   const now = useNow()
   const theme = props.context.theme
   const warning = theme.text.feedback.warning.base
+  const error = theme.text.feedback.error.base
 
   createEffect(() => {
     const current = hold()
@@ -84,14 +83,18 @@ function Panel(props: { context: Plugin.Context; sessionID: string }) {
   return (
     <Show when={hold()}>
       {(current) => {
-        const cells = () => bar(CELLS, current().since, current().until, now())
+        const due = () => now() >= current().until
         return (
           <box flexShrink={0} paddingLeft={3} paddingTop={1} paddingBottom={1}>
             <text fg={theme.text.muted}>
-              <span style={{ fg: warning }}>{'▌ '}</span>
-              <span style={{ fg: warning }}>{'━'.repeat(cells().filled)}</span>
-              <span style={{ fg: theme.text.muted }}>{'━'.repeat(cells().empty)}</span>
-              {`  ${resumeLabel(current().until, now())}`}
+              <span style={{ fg: theme.text.base }}>█</span>
+              <span style={{ fg: due() ? warning : error }}>
+                {rise(current().since, current().until, now())}
+              </span>
+              <span style={{ fg: warning }}>█</span>
+              {'  '}
+              <span style={{ fg: theme.text.base }}>wsb</span>
+              {` ${resumeLabel(current().until, now())}`}
             </text>
           </box>
         )

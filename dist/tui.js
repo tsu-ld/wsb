@@ -44,14 +44,13 @@ function clock(until, now) {
   const day = at.getDay() * 3
   return `${'SunMonTueWedThuFriSat'.slice(day, day + 3)} ${time}`
 }
-function bar(width, since, until, now) {
-  const cells = Math.max(0, Math.floor(width))
+var LEVELS = '\u2581\u2582\u2583\u2584\u2585\u2586\u2587\u2588'
+function rise(since, until, now) {
   if (!(until > since)) {
-    return { filled: cells, empty: 0 }
+    return '\u2588'
   }
   const ratio = Math.min(1, Math.max(0, (now - since) / (until - since)))
-  const filled = Math.min(cells, Math.round(cells * ratio))
-  return { filled, empty: cells - filled }
+  return LEVELS[Math.floor(ratio * (LEVELS.length - 1))] ?? '\u2588'
 }
 function resumeLabel(until, now) {
   const seconds = remaining(until, now)
@@ -132,7 +131,6 @@ function isHoldState(value) {
 }
 
 // src/tui.tsx
-var CELLS = 16
 function useNow() {
   const [now, setNow] = createSignal(Date.now())
   const timer = setInterval(() => setNow(Date.now()), 1000)
@@ -216,6 +214,7 @@ function Panel(props) {
   const now = useNow()
   const theme = props.context.theme
   const warning = theme.text.feedback.warning.base
+  const error = theme.text.feedback.error.base
   createEffect(() => {
     const current = hold()
     if (current && now() >= current.until) {
@@ -227,13 +226,15 @@ function Panel(props) {
       return hold()
     },
     children: (current) => {
-      const cells = () => bar(CELLS, current().since, current().until, now())
+      const due = () => now() >= current().until
       return (() => {
         var _el$ = _$createElement('box'),
           _el$2 = _$createElement('text'),
           _el$3 = _$createElement('span'),
           _el$5 = _$createElement('span'),
-          _el$6 = _$createElement('span')
+          _el$6 = _$createElement('span'),
+          _el$8 = _$createTextNode(`  `),
+          _el$9 = _$createElement('span')
         _$insertNode(_el$, _el$2)
         _$setProp(_el$, 'flexShrink', 0)
         _$setProp(_el$, 'paddingLeft', 3)
@@ -242,29 +243,39 @@ function Panel(props) {
         _$insertNode(_el$2, _el$3)
         _$insertNode(_el$2, _el$5)
         _$insertNode(_el$2, _el$6)
-        _$insertNode(_el$3, _$createTextNode(`\u258C `))
-        _$setProp(_el$3, 'style', {
+        _$insertNode(_el$2, _el$8)
+        _$insertNode(_el$2, _el$9)
+        _$insertNode(_el$3, _$createTextNode(`\u2588`))
+        _$insert(_el$5, () => rise(current().since, current().until, now()))
+        _$insertNode(_el$6, _$createTextNode(`\u2588`))
+        _$setProp(_el$6, 'style', {
           fg: warning,
         })
-        _$setProp(_el$5, 'style', {
-          fg: warning,
-        })
-        _$insert(_el$5, () => '\u2501'.repeat(cells().filled))
-        _$insert(_el$6, () => '\u2501'.repeat(cells().empty))
-        _$insert(_el$2, () => `  ${resumeLabel(current().until, now())}`, null)
+        _$insertNode(_el$9, _$createTextNode(`wsb`))
+        _$insert(_el$2, () => ` ${resumeLabel(current().until, now())}`, null)
         _$effect(
           (_p$) => {
             var _v$ = theme.text.muted,
               _v$2 = {
-                fg: theme.text.muted,
+                fg: theme.text.base,
+              },
+              _v$3 = {
+                fg: due() ? warning : error,
+              },
+              _v$4 = {
+                fg: theme.text.base,
               }
             _v$ !== _p$.e && (_p$.e = _$setProp(_el$2, 'fg', _v$, _p$.e))
-            _v$2 !== _p$.t && (_p$.t = _$setProp(_el$6, 'style', _v$2, _p$.t))
+            _v$2 !== _p$.t && (_p$.t = _$setProp(_el$3, 'style', _v$2, _p$.t))
+            _v$3 !== _p$.a && (_p$.a = _$setProp(_el$5, 'style', _v$3, _p$.a))
+            _v$4 !== _p$.o && (_p$.o = _$setProp(_el$9, 'style', _v$4, _p$.o))
             return _p$
           },
           {
             e: undefined,
             t: undefined,
+            a: undefined,
+            o: undefined,
           },
         )
         return _el$
@@ -288,13 +299,13 @@ function Status(props) {
     },
     children: (current) =>
       (() => {
-        var _el$7 = _$createElement('text')
-        _$setProp(_el$7, 'flexShrink', 0)
-        _$insert(_el$7, () => `wsb ${compact(remaining(current().until, now()))}`)
+        var _el$1 = _$createElement('text')
+        _$setProp(_el$1, 'flexShrink', 0)
+        _$insert(_el$1, () => `wsb ${compact(remaining(current().until, now()))}`)
         _$effect((_$p) =>
-          _$setProp(_el$7, 'fg', props.context.theme.text.feedback.warning.base, _$p),
+          _$setProp(_el$1, 'fg', props.context.theme.text.feedback.warning.base, _$p),
         )
-        return _el$7
+        return _el$1
       })(),
   })
 }
