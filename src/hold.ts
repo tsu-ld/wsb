@@ -39,11 +39,6 @@ export function compact(seconds: number): string {
   return `${seconds}s`
 }
 
-export function countdownField(seconds: number): string {
-  const text = seconds === 0 ? 'resetting…' : countdown(seconds)
-  return text.length >= 8 ? text : text.padEnd(8)
-}
-
 export function clock(until: number, now: number): string {
   const at = new Date(until)
   const time = `${pad(at.getHours())}:${pad(at.getMinutes())}`
@@ -64,15 +59,7 @@ export function bar(width: number, since: number, until: number, now: number): B
   return { filled, empty: cells - filled }
 }
 
-export function providerLabel(providerID: string): string | undefined {
-  switch (providerID) {
-    case 'anthropic':
-      return 'Claude Max'
-    case 'openai':
-      return 'ChatGPT'
-    case 'opencode-go':
-      return 'OpenCode Go'
-    default:
-      return undefined
-  }
+export function resumeLabel(until: number, now: number): string {
+  const seconds = remaining(until, now)
+  return seconds === 0 ? 'resuming…' : `resumes ${clock(until, now)} · in ${countdown(seconds)}`
 }

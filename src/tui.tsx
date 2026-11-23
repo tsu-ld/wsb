@@ -1,10 +1,10 @@
 import type { Plugin } from '@opencode/plugin/tui'
 import { createEffect, createSignal, on, onCleanup, Show } from 'solid-js'
-import { bar, clock, compact, countdownField, providerLabel, remaining } from './hold.ts'
+import { bar, compact, remaining, resumeLabel } from './hold.ts'
 import { Definition, changedSession, isHoldState } from './rpc.ts'
 import type { HoldState } from './rpc.ts'
 
-const CELLS = 24
+const CELLS = 16
 
 function useNow() {
   const [now, setNow] = createSignal(Date.now())
@@ -84,27 +84,14 @@ function Panel(props: { context: Plugin.Context; sessionID: string }) {
   return (
     <Show when={hold()}>
       {(current) => {
-        const seconds = () => remaining(current().until, now())
         const cells = () => bar(CELLS, current().since, current().until, now())
-        const provider = () => providerLabel(current().providerID)
         return (
-          <box flexDirection="column" flexShrink={0} paddingLeft={3} paddingTop={1}>
-            <text fg={warning}>
-              <span style={{ fg: warning }}>▌ </span>
-              <span style={{ fg: warning }}>{countdownField(seconds())}</span>
-              {'left  '}
+          <box flexShrink={0} paddingLeft={3} paddingTop={1} paddingBottom={1}>
+            <text fg={theme.text.muted}>
+              <span style={{ fg: warning }}>{'▌ '}</span>
               <span style={{ fg: warning }}>{'━'.repeat(cells().filled)}</span>
               <span style={{ fg: theme.text.muted }}>{'━'.repeat(cells().empty)}</span>
-            </text>
-            <text fg={theme.text.muted}>
-              <span style={{ fg: warning }}>▌ </span>
-              <span style={{ fg: warning }}>wsb</span>
-              {` holds this turn until ${clock(current().until, now())}`}
-              {provider() ? ` · ${provider()}` : ''}
-            </text>
-            <text fg={theme.text.muted}>
-              <span style={{ fg: warning }}>▌ </span>
-              then the same turn continues · a new message or Esc takes over
+              {`  ${resumeLabel(current().until, now())}`}
             </text>
           </box>
         )
