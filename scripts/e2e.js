@@ -20,7 +20,7 @@ async function eventually(read, description) {
   throw new Error(`Timed out: ${description}`)
 }
 
-const cases = ['go', 'claude', 'codex', 'restart', 'cancel', 'manual']
+const cases = ['go', 'claude', 'claude-agent', 'codex', 'restart', 'cancel', 'manual']
 const selected = process.argv[2] ? [process.argv[2]] : cases
 assert.ok(selected.every((item) => cases.includes(item)))
 
@@ -30,8 +30,10 @@ for (const scenario of selected) {
   await mkdir(config, { recursive: true })
   const sessionID = `ses_test${randomUUID().replaceAll('-', '')}`
   const model = {
-    providerID: { claude: 'anthropic', codex: 'openai' }[scenario] ?? 'opencode-go',
-    id: 'local-test',
+    providerID:
+      { claude: 'anthropic', 'claude-agent': 'claude-agent', codex: 'openai' }[scenario] ??
+      'opencode-go',
+    id: scenario === 'claude-agent' ? 'opus' : 'local-test',
   }
   const password = randomUUID()
   const env = {
@@ -47,8 +49,32 @@ for (const scenario of selected) {
     OPENCODE_DISABLE_PROJECT_CONFIG: '1',
   }
   const hits = []
+  const turnLog = join(root, 'claude-turns.log')
+  const turns = async () => {
+    if (scenario === 'claude-agent') {
+      const text = await file(turnLog)
+        .text()
+        .catch(() => '')
+      hits.splice(
+        0,
+        hits.length,
+        ...text
+          .split('\n')
+          .filter(Boolean)
+          .map((line) => Number(line.split(' ')[1])),
+      )
+    }
+    return hits
+  }
   const manualRequests = []
-  let until = 0
+  let until = scenario === 'claude-agent' ? Math.ceil((Date.now() + 5000) / 1000) * 1000 : 0
+  if (scenario === 'claude-agent') {
+    Object.assign(env, {
+      OPENCODE_CLAUDE_PATH: resolve(import.meta.dir, '../test/fixtures/fake-claude'),
+      FAKE_LOG: turnLog,
+      FAKE_RESET_SECONDS: String(until / 1000),
+    })
+  }
   const mock = serve({
     hostname: '127.0.0.1',
     port: 0,
@@ -167,7 +193,10 @@ for (const scenario of selected) {
         model: `${model.providerID}/${model.id}`,
         providers: {
           [model.providerID]: {
-            package: '@opencode/ai/providers/openai-compatible',
+            package:
+              scenario === 'claude-agent'
+                ? 'aisdk:@opencode/claude-agent'
+                : '@opencode/ai/providers/openai-compatible',
             activation: 'enabled',
             settings: {
               apiKey: 'dummy',
@@ -211,7 +240,7 @@ for (const scenario of selected) {
     await api(`/api/session/${sessionID}/prompt`, {
       text: 'QUOTA_FIXTURE Reply DONE without tools.',
     })
-    await eventually(() => hits.length, 'first primary request')
+    await eventually(async () => (await turns()).length, 'first primary request')
     await sleep(350)
     if (scenario === 'restart') {
       service.kill('SIGKILL')
@@ -255,8 +284,10 @@ for (const scenario of selected) {
         assert.ok(manualRequests[0] < until, 'user input is not held by the previous deadline')
         await sleep(Math.max(0, until - Date.now()) + 500)
       } else {
+        await turns()
         assert.ok(hits[1] >= until, 'no inference before the latest blocking reset')
       }
+      await turns()
       assert.equal(hits.length, 2, JSON.stringify(hits.map((t) => t - until)))
     }
     process.stdout.write(`PASS ${scenario} on OpenCode: ${hits.length} primary request(s)\n`)

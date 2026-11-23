@@ -1,3 +1,4 @@
+import { claudeAgentReset } from './claude-agent.js'
 import { claudeReset } from './claude.js'
 import { codexReset, observeCodex } from './codex.js'
 import { goAdapter } from './go-transport.js'
@@ -37,6 +38,7 @@ export function providers() {
       resolve: (_ctx, event, _now, observed) =>
         event.error?.status === 429 ? observed : undefined,
     },
+    'claude-agent': { resolve: (_ctx, event, now) => claudeAgentReset(event, now) },
     openai: { resolve: codexReset, observe: observeCodex },
     'opencode-go': goAdapter(),
   }
