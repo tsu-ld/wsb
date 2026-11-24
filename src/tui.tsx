@@ -83,14 +83,11 @@ function Panel(props: { context: Plugin.Context; sessionID: string }) {
   return (
     <Show when={hold()}>
       {(current) => {
-        const due = () => now() >= current().until
         return (
           <box flexShrink={0} paddingLeft={3} paddingTop={1} paddingBottom={1}>
             <text fg={theme.text.muted}>
               <span style={{ fg: theme.text.base }}>█</span>
-              <span style={{ fg: due() ? warning : error }}>
-                {rise(current().since, current().until, now())}
-              </span>
+              <span style={{ fg: error }}>{rise(current().since, current().until, now())}</span>
               <span style={{ fg: warning }}>█</span>
               {'  '}
               <span style={{ fg: theme.text.base }}>wsb</span>

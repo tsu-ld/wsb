@@ -226,7 +226,6 @@ function Panel(props) {
       return hold()
     },
     children: (current) => {
-      const due = () => now() >= current().until
       return (() => {
         var _el$ = _$createElement('box'),
           _el$2 = _$createElement('text'),
@@ -246,6 +245,9 @@ function Panel(props) {
         _$insertNode(_el$2, _el$8)
         _$insertNode(_el$2, _el$9)
         _$insertNode(_el$3, _$createTextNode(`\u2588`))
+        _$setProp(_el$5, 'style', {
+          fg: error,
+        })
         _$insert(_el$5, () => rise(current().since, current().until, now()))
         _$insertNode(_el$6, _$createTextNode(`\u2588`))
         _$setProp(_el$6, 'style', {
@@ -260,22 +262,17 @@ function Panel(props) {
                 fg: theme.text.base,
               },
               _v$3 = {
-                fg: due() ? warning : error,
-              },
-              _v$4 = {
                 fg: theme.text.base,
               }
             _v$ !== _p$.e && (_p$.e = _$setProp(_el$2, 'fg', _v$, _p$.e))
             _v$2 !== _p$.t && (_p$.t = _$setProp(_el$3, 'style', _v$2, _p$.t))
-            _v$3 !== _p$.a && (_p$.a = _$setProp(_el$5, 'style', _v$3, _p$.a))
-            _v$4 !== _p$.o && (_p$.o = _$setProp(_el$9, 'style', _v$4, _p$.o))
+            _v$3 !== _p$.a && (_p$.a = _$setProp(_el$9, 'style', _v$3, _p$.a))
             return _p$
           },
           {
             e: undefined,
             t: undefined,
             a: undefined,
-            o: undefined,
           },
         )
         return _el$
