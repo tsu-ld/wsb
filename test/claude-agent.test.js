@@ -40,8 +40,8 @@ test('a limit without a reset time, an elapsed reset or an unrelated error leave
   expect(claudeAgentReset({}, NOW)).toBeUndefined()
 })
 
-test('the claude-agent provider is registered and resolves through the retry hook', async () => {
+test('the claude-agent provider is registered and resolves through the retry hook', () => {
   const adapter = providers()['claude-agent']
-  const until = await adapter.resolve({}, { error: error(real) }, NOW)
+  const until = adapter.resolve({}, { error: error(real) }, NOW)
   expect(until).toBe(RESET)
 })
