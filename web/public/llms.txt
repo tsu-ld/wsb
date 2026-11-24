@@ -41,7 +41,7 @@ Metered OpenAI and Anthropic API keys are not supported.
 
 ## Links
 
-- [Website](https://wsb.tsu.ar/): demo of the problem and the fix, and one-click install
+- [Website](https://wsb.tsu.ar/)
 - [Source code](https://github.com/tsu-ld/wsb): MIT-licensed repository with tests
 - [Architecture](https://github.com/tsu-ld/wsb/blob/production/ARCHITECTURE.md): how the plugin decides when to retry and how to add a provider
 - [OpenCode plugins](https://opencode.ai/docs/build/plugins): official docs on installing and building OpenCode plugins
