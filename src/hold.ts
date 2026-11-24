@@ -56,5 +56,7 @@ export function rise(since: number, until: number, now: number): string {
 
 export function resumeLabel(until: number, now: number): string {
   const seconds = remaining(until, now)
-  return seconds === 0 ? 'resuming…' : `resumes ${clock(until, now)} · in ${countdown(seconds)}`
+  return seconds === 0
+    ? 'resuming…'
+    : `waiting for the reset · resumes ${clock(until, now)} · in ${countdown(seconds)}`
 }

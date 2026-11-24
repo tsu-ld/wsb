@@ -91,7 +91,7 @@ function Panel(props: { context: Plugin.Context; sessionID: string }) {
               <span style={{ fg: warning }}>█</span>
               {'  '}
               <span style={{ fg: theme.text.base }}>wsb</span>
-              {` ${resumeLabel(current().until, now())}`}
+              {` · ${resumeLabel(current().until, now())}`}
             </text>
           </box>
         )

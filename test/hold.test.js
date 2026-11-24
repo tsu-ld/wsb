@@ -53,8 +53,14 @@ test('the middle bar of the mark rises with the share of the wait that has passe
 })
 
 test('the resume label gives the clock time and the wait in one line, and none once it is due', () => {
-  expect(resumeLabel(at(22, 3, 17), at(22, 2, 52))).toBe('resumes 03:17 · in 25m 00s')
-  expect(resumeLabel(at(22, 16, 30), at(22, 15, 25))).toBe('resumes 16:30 · in 1h 05m')
-  expect(resumeLabel(at(24, 1, 0), at(22, 12, 0))).toBe('resumes Tue 01:00 · in 1d 13h')
+  expect(resumeLabel(at(22, 3, 17), at(22, 2, 52))).toBe(
+    'waiting for the reset · resumes 03:17 · in 25m 00s',
+  )
+  expect(resumeLabel(at(22, 16, 30), at(22, 15, 25))).toBe(
+    'waiting for the reset · resumes 16:30 · in 1h 05m',
+  )
+  expect(resumeLabel(at(24, 1, 0), at(22, 12, 0))).toBe(
+    'waiting for the reset · resumes Tue 01:00 · in 1d 13h',
+  )
   expect(resumeLabel(at(22, 3, 17), at(22, 3, 17))).toBe('resuming…')
 })

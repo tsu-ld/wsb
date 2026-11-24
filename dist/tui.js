@@ -56,7 +56,7 @@ function resumeLabel(until, now) {
   const seconds = remaining(until, now)
   return seconds === 0
     ? 'resuming\u2026'
-    : `resumes ${clock(until, now)} \xB7 in ${countdown(seconds)}`
+    : `waiting for the reset \xB7 resumes ${clock(until, now)} \xB7 in ${countdown(seconds)}`
 }
 
 // src/rpc.ts
@@ -254,7 +254,7 @@ function Panel(props) {
           fg: warning,
         })
         _$insertNode(_el$9, _$createTextNode(`wsb`))
-        _$insert(_el$2, () => ` ${resumeLabel(current().until, now())}`, null)
+        _$insert(_el$2, () => ` \xB7 ${resumeLabel(current().until, now())}`, null)
         _$effect(
           (_p$) => {
             var _v$ = theme.text.muted,
