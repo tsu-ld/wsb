@@ -55,7 +55,11 @@ Checked at each source on 2026-11-24.
 
 ## Links
 
+- [Markdown homepage](/index.md): concise overview for agents that do not negotiate Markdown.
+- [ARD manifest](/.well-known/ard.json): machine-readable capabilities and representative queries for agent discovery.
 - [Website](https://wsb.tsu.ar/)
 - [Source code](https://github.com/tsu-ld/wsb): MIT-licensed repository with tests
 - [Architecture](https://github.com/tsu-ld/wsb/blob/production/ARCHITECTURE.md): how the plugin decides when to retry and how to add a provider
 - [OpenCode plugins](https://opencode.ai/docs/build/plugins): official docs on installing and building OpenCode plugins
+
+Sources: wsb README.md; ARCHITECTURE.md; OpenCode plugin documentation; llms.txt v2; ARD publishing guide.

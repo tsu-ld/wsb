@@ -1,0 +1,15 @@
+/
+  Link: </.well-known/ard.json>; rel="service-desc"; type="application/json"
+  Link: </llms.txt>; rel="service-doc"; type="text/markdown"
+  Link: </llms.txt>; rel="describedby"; type="text/markdown"
+  Link: </index.md>; rel="alternate"; type="text/markdown"
+
+/llms.txt
+  Content-Type: text/markdown; charset=utf-8
+
+/index.md
+  Content-Type: text/markdown; charset=utf-8
+
+/.well-known/ard.json
+  Access-Control-Allow-Origin: *
+
