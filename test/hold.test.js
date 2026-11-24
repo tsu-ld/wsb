@@ -1,13 +1,5 @@
 import { expect, test } from 'bun:test'
-import {
-  bar,
-  clock,
-  compact,
-  countdown,
-  countdownField,
-  providerLabel,
-  remaining,
-} from '../src/hold.ts'
+import { clock, compact, countdown, remaining, resumeLabel, rise } from '../src/hold.ts'
 
 const at = (day, hour, minute) => new Date(2026, 10, day, hour, minute, 0, 0).getTime()
 
@@ -50,29 +42,25 @@ test('clock prints the local reset time, and the weekday once it is not today', 
   expect(clock(at(23, 22, 5), at(22, 12, 0))).toBe('Mon 22:05')
 })
 
-test('bar fills the share of the wait that has already passed', () => {
-  expect(bar(24, 0, 100, 0)).toEqual({ filled: 0, empty: 24 })
-  expect(bar(24, 0, 100, 50)).toEqual({ filled: 12, empty: 12 })
-  expect(bar(24, 0, 100, 100)).toEqual({ filled: 24, empty: 0 })
-  expect(bar(24, 0, 100, 250)).toEqual({ filled: 24, empty: 0 })
-  expect(bar(24, 0, 100, -5)).toEqual({ filled: 0, empty: 24 })
-  expect(bar(24, 5, 5, 10)).toEqual({ filled: 24, empty: 0 })
-  expect(bar(0, 0, 100, 50)).toEqual({ filled: 0, empty: 0 })
-  expect(bar(24.9, 0, 3, 1)).toEqual({ filled: 8, empty: 16 })
+test('the middle bar of the mark rises with the share of the wait that has passed', () => {
+  expect(rise(0, 100, 0)).toBe('▁')
+  expect(rise(0, 100, 50)).toBe('▄')
+  expect(rise(0, 100, 99)).toBe('▇')
+  expect(rise(0, 100, 100)).toBe('█')
+  expect(rise(0, 100, 250)).toBe('█')
+  expect(rise(0, 100, -5)).toBe('▁')
+  expect(rise(5, 5, 10)).toBe('█')
 })
 
-test('providerLabel names the subscription behind the provider id', () => {
-  expect(providerLabel('anthropic')).toBe('Claude Max')
-  expect(providerLabel('openai')).toBe('ChatGPT')
-  expect(providerLabel('opencode-go')).toBe('OpenCode Go')
-  expect(providerLabel('local')).toBeUndefined()
-})
-
-test('the countdown field keeps the rail and the label in one column', () => {
-  for (const seconds of [1, 59, 60, 599, 600, 1344, 3599, 3600, 5400, 86_399, 86_400, 90_000]) {
-    expect(countdownField(seconds)).toHaveLength(8)
-  }
-  expect(countdownField(0)).toBe('resetting…')
-  expect(countdownField(1344)).toBe('22m 24s ')
-  expect(countdownField(9000)).toBe('2h 30m  ')
+test('the resume label gives the clock time and the wait in one line, and none once it is due', () => {
+  expect(resumeLabel(at(22, 3, 17), at(22, 2, 52))).toBe(
+    'waiting for the reset · resumes 03:17 · in 25m 00s',
+  )
+  expect(resumeLabel(at(22, 16, 30), at(22, 15, 25))).toBe(
+    'waiting for the reset · resumes 16:30 · in 1h 05m',
+  )
+  expect(resumeLabel(at(24, 1, 0), at(22, 12, 0))).toBe(
+    'waiting for the reset · resumes Tue 01:00 · in 1d 13h',
+  )
+  expect(resumeLabel(at(22, 3, 17), at(22, 3, 17))).toBe('resuming…')
 })

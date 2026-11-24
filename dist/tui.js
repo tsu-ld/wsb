@@ -1,7 +1,6 @@
 // @bun
 // src/tui.tsx
 import { effect as _$effect } from '@opentui/solid'
-import { memo as _$memo } from '@opentui/solid'
 import { insert as _$insert } from '@opentui/solid'
 import { createTextNode as _$createTextNode } from '@opentui/solid'
 import { insertNode as _$insertNode } from '@opentui/solid'
@@ -36,10 +35,6 @@ function compact(seconds) {
   }
   return `${seconds}s`
 }
-function countdownField(seconds) {
-  const text = seconds === 0 ? 'resetting\u2026' : countdown(seconds)
-  return text.length >= 8 ? text : text.padEnd(8)
-}
 function clock(until, now) {
   const at = new Date(until)
   const time = `${pad(at.getHours())}:${pad(at.getMinutes())}`
@@ -49,26 +44,19 @@ function clock(until, now) {
   const day = at.getDay() * 3
   return `${'SunMonTueWedThuFriSat'.slice(day, day + 3)} ${time}`
 }
-function bar(width, since, until, now) {
-  const cells = Math.max(0, Math.floor(width))
+var LEVELS = '\u2581\u2582\u2583\u2584\u2585\u2586\u2587\u2588'
+function rise(since, until, now) {
   if (!(until > since)) {
-    return { filled: cells, empty: 0 }
+    return '\u2588'
   }
   const ratio = Math.min(1, Math.max(0, (now - since) / (until - since)))
-  const filled = Math.min(cells, Math.round(cells * ratio))
-  return { filled, empty: cells - filled }
+  return LEVELS[Math.floor(ratio * (LEVELS.length - 1))] ?? '\u2588'
 }
-function providerLabel(providerID) {
-  switch (providerID) {
-    case 'anthropic':
-      return 'Claude Max'
-    case 'openai':
-      return 'ChatGPT'
-    case 'opencode-go':
-      return 'OpenCode Go'
-    default:
-      return
-  }
+function resumeLabel(until, now) {
+  const seconds = remaining(until, now)
+  return seconds === 0
+    ? 'resuming\u2026'
+    : `waiting for the reset \xB7 resumes ${clock(until, now)} \xB7 in ${countdown(seconds)}`
 }
 
 // src/rpc.ts
@@ -143,7 +131,6 @@ function isHoldState(value) {
 }
 
 // src/tui.tsx
-var CELLS = 24
 function useNow() {
   const [now, setNow] = createSignal(Date.now())
   const timer = setInterval(() => setNow(Date.now()), 1000)
@@ -227,6 +214,7 @@ function Panel(props) {
   const now = useNow()
   const theme = props.context.theme
   const warning = theme.text.feedback.warning.base
+  const error = theme.text.feedback.error.base
   createEffect(() => {
     const current = hold()
     if (current && now() >= current.until) {
@@ -238,86 +226,47 @@ function Panel(props) {
       return hold()
     },
     children: (current) => {
-      const seconds = () => remaining(current().until, now())
-      const cells = () => bar(CELLS, current().since, current().until, now())
-      const provider = () => providerLabel(current().providerID)
       return (() => {
         var _el$ = _$createElement('box'),
           _el$2 = _$createElement('text'),
           _el$3 = _$createElement('span'),
           _el$5 = _$createElement('span'),
-          _el$6 = _$createTextNode(`left  `),
-          _el$7 = _$createElement('span'),
-          _el$8 = _$createElement('span'),
-          _el$9 = _$createElement('text'),
-          _el$0 = _$createElement('span'),
-          _el$10 = _$createElement('span'),
-          _el$12 = _$createElement('text'),
-          _el$13 = _$createElement('span'),
-          _el$15 = _$createTextNode(
-            `then the same turn continues \xB7 a new message or Esc takes over`,
-          )
+          _el$6 = _$createElement('span'),
+          _el$8 = _$createTextNode(`  `),
+          _el$9 = _$createElement('span')
         _$insertNode(_el$, _el$2)
-        _$insertNode(_el$, _el$9)
-        _$insertNode(_el$, _el$12)
-        _$setProp(_el$, 'flexDirection', 'column')
         _$setProp(_el$, 'flexShrink', 0)
         _$setProp(_el$, 'paddingLeft', 3)
         _$setProp(_el$, 'paddingTop', 1)
+        _$setProp(_el$, 'paddingBottom', 1)
         _$insertNode(_el$2, _el$3)
         _$insertNode(_el$2, _el$5)
         _$insertNode(_el$2, _el$6)
-        _$insertNode(_el$2, _el$7)
         _$insertNode(_el$2, _el$8)
-        _$setProp(_el$2, 'fg', warning)
-        _$insertNode(_el$3, _$createTextNode(`\u258C `))
-        _$setProp(_el$3, 'style', {
-          fg: warning,
-        })
+        _$insertNode(_el$2, _el$9)
+        _$insertNode(_el$3, _$createTextNode(`\u2588`))
         _$setProp(_el$5, 'style', {
+          fg: error,
+        })
+        _$insert(_el$5, () => rise(current().since, current().until, now()))
+        _$insertNode(_el$6, _$createTextNode(`\u2588`))
+        _$setProp(_el$6, 'style', {
           fg: warning,
         })
-        _$insert(_el$5, () => countdownField(seconds()))
-        _$setProp(_el$7, 'style', {
-          fg: warning,
-        })
-        _$insert(_el$7, () => '\u2501'.repeat(cells().filled))
-        _$insert(_el$8, () => '\u2501'.repeat(cells().empty))
-        _$insertNode(_el$9, _el$0)
-        _$insertNode(_el$9, _el$10)
-        _$insertNode(_el$0, _$createTextNode(`\u258C `))
-        _$setProp(_el$0, 'style', {
-          fg: warning,
-        })
-        _$insertNode(_el$10, _$createTextNode(`wsb`))
-        _$setProp(_el$10, 'style', {
-          fg: warning,
-        })
-        _$insert(_el$9, () => ` holds this turn until ${clock(current().until, now())}`, null)
-        _$insert(
-          _el$9,
-          (() => {
-            var _c$ = _$memo(() => !!provider())
-            return () => (_c$() ? ` \xB7 ${provider()}` : '')
-          })(),
-          null,
-        )
-        _$insertNode(_el$12, _el$13)
-        _$insertNode(_el$12, _el$15)
-        _$insertNode(_el$13, _$createTextNode(`\u258C `))
-        _$setProp(_el$13, 'style', {
-          fg: warning,
-        })
+        _$insertNode(_el$9, _$createTextNode(`wsb`))
+        _$insert(_el$2, () => ` \xB7 ${resumeLabel(current().until, now())}`, null)
         _$effect(
           (_p$) => {
-            var _v$ = {
-                fg: theme.text.muted,
+            var _v$ = theme.text.muted,
+              _v$2 = {
+                fg: theme.text.base,
               },
-              _v$2 = theme.text.muted,
-              _v$3 = theme.text.muted
-            _v$ !== _p$.e && (_p$.e = _$setProp(_el$8, 'style', _v$, _p$.e))
-            _v$2 !== _p$.t && (_p$.t = _$setProp(_el$9, 'fg', _v$2, _p$.t))
-            _v$3 !== _p$.a && (_p$.a = _$setProp(_el$12, 'fg', _v$3, _p$.a))
+              _v$3 = {
+                fg: theme.text.base,
+              }
+            _v$ !== _p$.e && (_p$.e = _$setProp(_el$2, 'fg', _v$, _p$.e))
+            _v$2 !== _p$.t && (_p$.t = _$setProp(_el$3, 'style', _v$2, _p$.t))
+            _v$3 !== _p$.a && (_p$.a = _$setProp(_el$9, 'style', _v$3, _p$.a))
             return _p$
           },
           {
@@ -347,13 +296,13 @@ function Status(props) {
     },
     children: (current) =>
       (() => {
-        var _el$16 = _$createElement('text')
-        _$setProp(_el$16, 'flexShrink', 0)
-        _$insert(_el$16, () => `wsb ${compact(remaining(current().until, now()))}`)
+        var _el$1 = _$createElement('text')
+        _$setProp(_el$1, 'flexShrink', 0)
+        _$insert(_el$1, () => `wsb ${compact(remaining(current().until, now()))}`)
         _$effect((_$p) =>
-          _$setProp(_el$16, 'fg', props.context.theme.text.feedback.warning.base, _$p),
+          _$setProp(_el$1, 'fg', props.context.theme.text.feedback.warning.base, _$p),
         )
-        return _el$16
+        return _el$1
       })(),
   })
 }

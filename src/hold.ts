@@ -5,11 +5,6 @@ export interface Hold {
   readonly model: string
 }
 
-export interface Bar {
-  readonly filled: number
-  readonly empty: number
-}
-
 const pad = (value: number) => String(value).padStart(2, '0')
 
 export function remaining(until: number, now: number): number {
@@ -39,11 +34,6 @@ export function compact(seconds: number): string {
   return `${seconds}s`
 }
 
-export function countdownField(seconds: number): string {
-  const text = seconds === 0 ? 'resetting…' : countdown(seconds)
-  return text.length >= 8 ? text : text.padEnd(8)
-}
-
 export function clock(until: number, now: number): string {
   const at = new Date(until)
   const time = `${pad(at.getHours())}:${pad(at.getMinutes())}`
@@ -54,25 +44,19 @@ export function clock(until: number, now: number): string {
   return `${'SunMonTueWedThuFriSat'.slice(day, day + 3)} ${time}`
 }
 
-export function bar(width: number, since: number, until: number, now: number): Bar {
-  const cells = Math.max(0, Math.floor(width))
+const LEVELS = '▁▂▃▄▅▆▇█'
+
+export function rise(since: number, until: number, now: number): string {
   if (!(until > since)) {
-    return { filled: cells, empty: 0 }
+    return '█'
   }
   const ratio = Math.min(1, Math.max(0, (now - since) / (until - since)))
-  const filled = Math.min(cells, Math.round(cells * ratio))
-  return { filled, empty: cells - filled }
+  return LEVELS[Math.floor(ratio * (LEVELS.length - 1))] ?? '█'
 }
 
-export function providerLabel(providerID: string): string | undefined {
-  switch (providerID) {
-    case 'anthropic':
-      return 'Claude Max'
-    case 'openai':
-      return 'ChatGPT'
-    case 'opencode-go':
-      return 'OpenCode Go'
-    default:
-      return undefined
-  }
+export function resumeLabel(until: number, now: number): string {
+  const seconds = remaining(until, now)
+  return seconds === 0
+    ? 'resuming…'
+    : `waiting for the reset · resumes ${clock(until, now)} · in ${countdown(seconds)}`
 }
