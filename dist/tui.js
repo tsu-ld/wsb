@@ -138,18 +138,43 @@ function isHoldState(value) {
 }
 
 // src/opencode/tui.tsx
-var stores = new Map;
+var GRACE = 120000;
+var stores = new WeakMap;
+function shown(hold, lastSeenAt, now) {
+  if (!hold) {
+    return;
+  }
+  return now < hold.until || now - Math.max(lastSeenAt, hold.until) < GRACE ? hold : undefined;
+}
 function createHoldStore(context, sessionID) {
-  const [hold, setHold] = createSignal();
+  const [seen, setSeen] = createSignal();
   const [why, setWhy] = createSignal();
   const [now, setNow] = createSignal(Date.now());
-  const timer = setInterval(() => setNow(Date.now()), 1000);
   const rpc = context.client.rpc(Definition);
   let turn = 0;
   let asked = 0;
   let askedAt = 0;
+  let forced = false;
   let active = true;
-  const load = () => {
+  const settle = (next) => {
+    const at = Date.now();
+    const force = forced;
+    forced = false;
+    if (next) {
+      setSeen({
+        hold: next,
+        at
+      });
+      return;
+    }
+    const last = seen();
+    if (!force && last && shown(last.hold, last.at, at) && at >= last.hold.until) {
+      return;
+    }
+    setSeen(undefined);
+  };
+  const load = (force = false) => {
+    forced ||= force;
     const current = ++turn;
     const directory = context.data.session.get(sessionID)?.location.directory;
     const options = directory ? {
@@ -161,11 +186,11 @@ function createHoldStore(context, sessionID) {
       sessionID
     }, options).then((next) => {
       if (active && current === turn) {
-        setHold(isHoldState(next) ? next : undefined);
+        settle(isHoldState(next) ? next : undefined);
       }
     }, () => {
       if (active && current === turn) {
-        setHold(undefined);
+        settle(undefined);
       }
     });
     rpc.why({
@@ -180,8 +205,7 @@ function createHoldStore(context, sessionID) {
       }
     });
   };
-  const refresh = (until) => {
-    const at = Date.now();
+  const refresh = (until, at) => {
     if (asked === until && at - askedAt < 30000) {
       return;
     }
@@ -189,17 +213,28 @@ function createHoldStore(context, sessionID) {
     askedAt = at;
     load();
   };
+  const timer = setInterval(() => {
+    const at = Date.now();
+    setNow(at);
+    const last = seen();
+    if (last && at >= last.hold.until) {
+      refresh(last.hold.until, at);
+    }
+  }, 1000);
   const changed = rpc.events.on("changed", (event) => {
     if (changedSession(event.data) === sessionID) {
-      load();
+      load(true);
     }
   });
-  const connected = context.data.on("server.connected", load);
+  const connected = context.data.on("server.connected", () => load());
+  load();
   return {
-    hold,
+    hold: () => {
+      const last = seen();
+      return last && shown(last.hold, last.at, now());
+    },
     why,
     now,
-    refresh,
     dispose: () => {
       active = false;
       turn += 1;
@@ -209,14 +244,20 @@ function createHoldStore(context, sessionID) {
     }
   };
 }
-function acquireHold(context, sessionID) {
-  let entry = stores.get(sessionID);
+function storeFor(context, sessionID) {
+  let entries = stores.get(context);
+  if (!entries) {
+    entries = new Map;
+    stores.set(context, entries);
+  }
+  const scoped = entries;
+  let entry = scoped.get(sessionID);
   if (!entry) {
     entry = {
       store: createHoldStore(context, sessionID),
       users: 0
     };
-    stores.set(sessionID, entry);
+    scoped.set(sessionID, entry);
   }
   const acquired = entry;
   acquired.users += 1;
@@ -230,8 +271,8 @@ function acquireHold(context, sessionID) {
       released = true;
       acquired.users -= 1;
       if (acquired.users === 0) {
-        if (stores.get(sessionID) === acquired) {
-          stores.delete(sessionID);
+        if (scoped.get(sessionID) === acquired) {
+          scoped.delete(sessionID);
         }
         acquired.store.dispose();
       }
@@ -248,33 +289,25 @@ function useHold(context, sessionID) {
     }
     selected = id;
     lease?.release();
-    lease = id ? acquireHold(context, id) : undefined;
+    lease = id ? storeFor(context, id) : undefined;
     setCurrent(lease?.store);
   }));
   onCleanup(() => lease?.release());
   return {
     hold: () => current()?.hold(),
     why: () => current()?.why(),
-    now: () => current()?.now() ?? Date.now(),
-    refresh: (until) => current()?.refresh(until)
+    now: () => current()?.now() ?? Date.now()
   };
 }
 function Panel(props) {
   const {
     hold,
     why,
-    now,
-    refresh
+    now
   } = useHold(props.context, () => props.sessionID);
   const theme = props.context.theme;
   const warning = theme.text.feedback.warning.base;
   const error = theme.text.feedback.error.base;
-  createEffect(() => {
-    const current = hold();
-    if (current && now() >= current.until) {
-      refresh(current.until);
-    }
-  });
   return _$createComponent(Show, {
     get when() {
       return hold();
@@ -356,15 +389,8 @@ function Panel(props) {
 function Status(props) {
   const {
     hold,
-    now,
-    refresh
+    now
   } = useHold(props.context, () => props.sessionID);
-  createEffect(() => {
-    const current = hold();
-    if (current && props.sessionID && now() >= current.until) {
-      refresh(current.until);
-    }
-  });
   return _$createComponent(Show, {
     get when() {
       return hold();
@@ -406,5 +432,7 @@ var tui_default = {
   }
 };
 export {
-  tui_default as default
+  tui_default as default,
+  shown,
+  storeFor
 };
