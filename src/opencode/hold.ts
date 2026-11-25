@@ -49,7 +49,7 @@ export function isStored(value: unknown): value is Stored {
 }
 
 export function project(sessionID: string, value: unknown, now: number): HoldState | null {
-  if (!isStored(value) || !plausible(value.until, now)) {
+  if (!isStored(value) || value.until - now > 31 * 86_400_000) {
     return null
   }
   return {

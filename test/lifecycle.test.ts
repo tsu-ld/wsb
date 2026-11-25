@@ -344,6 +344,27 @@ test('a prompt during a host-owned wait keeps the hold', async () => {
   await dispose()
 })
 
+test('a stored hold past its deadline is still reported until dispatch', async () => {
+  const h = host()
+  const deadline = Date.now() - 1000
+  const dispose = await start(h.ctx, {})
+  try {
+    h.store.set('wait/s', { until: deadline, agent: 'build', model: route().model })
+    expect(await h.get()).toMatchObject({
+      sessionID: 's',
+      until: deadline,
+      since: deadline,
+      providerID: 'test',
+      model: 'model',
+    })
+    await h.call('context', route())
+    expect(h.store.size).toBe(0)
+    expect(await h.get()).toBeNull()
+  } finally {
+    await dispose()
+  }
+})
+
 test('the kept hold is removed when the turn is dispatched after the deadline', async () => {
   const h = host()
   await setup(h.ctx, { test: until(Date.now() + 60) })
