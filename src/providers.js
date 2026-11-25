@@ -1,6 +1,6 @@
-import { codexReset, observeCodex } from './codex.js'
 import { plausible } from './deadline.ts'
 import { goAdapter } from './go-transport.js'
+import { chatgptSource } from './opencode/sources/chatgpt.ts'
 import { claudeAgentSource } from './opencode/sources/claude-agent.ts'
 import { meridianSource } from './opencode/sources/meridian.ts'
 
@@ -31,7 +31,15 @@ export function providers() {
   return {
     anthropic: adapt(meridianSource()),
     'claude-agent': adapt(claudeAgentSource()),
-    openai: legacy({ resolve: codexReset, observe: observeCodex }),
+    openai: {
+      observe: (event) => chatgptSource().atResponse(event, Date.now()),
+      resolve: (ctx, event, now, earlier) =>
+        chatgptSource({ connection: () => ctx?.integration?.connection }).atError(
+          event,
+          earlier,
+          now,
+        ),
+    },
     'opencode-go': legacy(goAdapter()),
   }
 }
