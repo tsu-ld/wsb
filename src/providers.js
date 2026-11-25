@@ -1,7 +1,7 @@
-import { claudeAgentReset } from './claude-agent.js'
 import { codexReset, observeCodex } from './codex.js'
 import { plausible } from './deadline.ts'
 import { goAdapter } from './go-transport.js'
+import { claudeAgentSource } from './opencode/sources/claude-agent.ts'
 import { meridianSource } from './opencode/sources/meridian.ts'
 
 const fromLegacy = (value) =>
@@ -23,14 +23,14 @@ const legacy = ({ observe, resolve }) => ({
 })
 
 const adapt = (source) => ({
-  observe: (event) => source.atResponse(event, Date.now()),
+  observe: source.atResponse ? (event) => source.atResponse(event, Date.now()) : undefined,
   resolve: (_ctx, event, now, earlier) => source.atError(event, earlier, now),
 })
 
 export function providers() {
   return {
     anthropic: adapt(meridianSource()),
-    'claude-agent': legacy({ resolve: (_ctx, event, now) => claudeAgentReset(event, now) }),
+    'claude-agent': adapt(claudeAgentSource()),
     openai: legacy({ resolve: codexReset, observe: observeCodex }),
     'opencode-go': legacy(goAdapter()),
   }
