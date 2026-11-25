@@ -1,3 +1,6 @@
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, it } from 'bun:test'
 import { chatgptSource } from '../../src/opencode/sources/chatgpt.ts'
 import type { ConnectionAPI, ErrorEvent } from '../../src/opencode/sources/chatgpt.ts'
@@ -28,6 +31,7 @@ const error = (body: Wire, type = 'provider.chatgpt-limit'): ErrorEvent => ({
 })
 
 const limit = (extra: Fields = {}) => error({ error: { type: 'usage_limit_reached', ...extra } })
+const sharingLimit = () => error({ error: { code: 'subscription_sharing_usage_limit_exceeded' } })
 
 const serve = (payload: Wire) => {
   const calls: Array<Call> = []
@@ -68,6 +72,91 @@ describe('chatgptSource', () => {
       await source.atError(limit({ account_id: 'acct-a', resets_at: S - 1 }), undefined, NOW),
     ).toEqual({ kind: 'until', until: NOW + 90_000 })
     expect(calls).toHaveLength(1)
+  })
+
+  it('an unattributed sharing limit uses the Codex CLI login for the quota lookup', async () => {
+    const { calls, fetch } = serve(exhausted(S + 90))
+    const source = chatgptSource({
+      fetch,
+      connection: api(credential()),
+      codexLogin: async () => ({ token: 'ctok', account: 'acct-c' }),
+    })
+    expect(await source.atError(sharingLimit(), undefined, NOW)).toEqual({
+      kind: 'until',
+      until: NOW + 90_000,
+    })
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.init?.headers).toMatchObject({
+      Authorization: 'Bearer ctok',
+      'ChatGPT-Account-Id': 'acct-c',
+    })
+  })
+
+  it('an unattributed sharing limit without a Codex CLI login remains unknown', async () => {
+    const { calls, fetch } = noLookup()
+    const source = chatgptSource({
+      fetch,
+      connection: api(credential()),
+      codexLogin: async () => undefined,
+    })
+    expect(await source.atError(sharingLimit(), undefined, NOW)).toEqual({
+      kind: 'unknown',
+      reason:
+        'Sign in with ChatGPT gives no reset time; run `codex login` or reconnect OpenAI with Codex browser (legacy)',
+    })
+    expect(calls).toEqual([])
+  })
+
+  it('the default Codex login reader uses CODEX_HOME and rejects unusable files', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'wsb-codex-'))
+    const previous = process.env['CODEX_HOME']
+    process.env['CODEX_HOME'] = dir
+    const { calls, fetch } = serve(exhausted(S + 90))
+    try {
+      const source = chatgptSource({ fetch, connection: api(credential()) })
+      const file = join(dir, 'auth.json')
+      const unknown = {
+        kind: 'unknown',
+        reason:
+          'Sign in with ChatGPT gives no reset time; run `codex login` or reconnect OpenAI with Codex browser (legacy)',
+      } as const
+      expect(await source.atError(sharingLimit(), undefined, NOW)).toEqual(unknown)
+      for (const value of [
+        { auth_mode: 'apiKey', tokens: { access_token: 'ctok', account_id: 'acct-c' } },
+        { auth_mode: 'chatgpt', tokens: { access_token: 'ctok' } },
+        { auth_mode: 'chatgpt', tokens: { account_id: 'acct-c' } },
+      ]) {
+        await writeFile(file, JSON.stringify(value))
+        expect(await source.atError(sharingLimit(), undefined, NOW)).toEqual(unknown)
+      }
+      expect(calls).toEqual([])
+      await writeFile(
+        file,
+        JSON.stringify({
+          auth_mode: 'chatgpt',
+          tokens: { access_token: 'ctok', account_id: 'acct-c' },
+        }),
+      )
+      expect(await source.atError(sharingLimit(), undefined, NOW)).toEqual({
+        kind: 'until',
+        until: NOW + 90_000,
+      })
+      expect(calls).toHaveLength(1)
+      expect(calls[0]?.init?.headers).toMatchObject({
+        Authorization: 'Bearer ctok',
+        'ChatGPT-Account-Id': 'acct-c',
+      })
+      await writeFile(file, '{')
+      expect(await source.atError(sharingLimit(), undefined, NOW)).toEqual(unknown)
+      expect(calls).toHaveLength(1)
+    } finally {
+      if (previous === undefined) {
+        delete process.env['CODEX_HOME']
+      } else {
+        process.env['CODEX_HOME'] = previous
+      }
+      await rm(dir, { recursive: true, force: true })
+    }
   })
 
   it('an HTTP refusal without account in the body can use the original ChatGPT request identity', async () => {
