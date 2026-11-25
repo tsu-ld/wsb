@@ -1,6 +1,6 @@
 import type { Plugin } from '@opencode/plugin/tui'
 import { createEffect, createSignal, on, onCleanup, Show } from 'solid-js'
-import { compact, remaining, resumeLabel, rise } from './format.ts'
+import { compact, remaining, resumeLabel, rise } from '../format.ts'
 import { Definition, changedSession, isHoldState } from './rpc.ts'
 import type { HoldState } from './rpc.ts'
 

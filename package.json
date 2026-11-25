@@ -10,9 +10,9 @@
   ],
   "type": "module",
   "exports": {
-    ".": "./src/index.js",
+    ".": "./src/opencode/plugin.ts",
     "./tui": "./dist/tui.js",
-    "./rpc": "./src/rpc.ts"
+    "./rpc": "./src/opencode/rpc.ts"
   },
   "scripts": {
     "test": "bun test",

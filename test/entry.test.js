@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test'
 import { createServer } from 'node:http'
 import { once } from 'node:events'
-import plugin from '../src/index.js'
+import plugin from '../src/opencode/plugin.ts'
 import { goSource } from '../src/opencode/sources/go.ts'
 
 async function load() {

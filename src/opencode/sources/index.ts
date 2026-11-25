@@ -29,14 +29,3 @@ export function sources({
     'opencode-go': goSource(fetch ? { fetch } : {}),
   } satisfies { [providerID: string]: Source }
 }
-
-export function asProviders(registry: { [providerID: string]: Source }) {
-  const adapt = ({ atResponse, atError }: Source) => ({
-    observe: atResponse ? (event: SessionHttpResponse) => atResponse(event, Date.now()) : undefined,
-    resolve: (_ctx: unknown, event: SessionRetry, now: number, earlier?: Reading) =>
-      atError(event, earlier, now),
-  })
-  return Object.fromEntries(
-    Object.entries(registry).map(([providerID, source]) => [providerID, adapt(source)]),
-  )
-}

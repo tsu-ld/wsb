@@ -1,5 +1,5 @@
 // @bun
-// src/tui.tsx
+// src/opencode/tui.tsx
 import { effect as _$effect } from '@opentui/solid'
 import { insert as _$insert } from '@opentui/solid'
 import { createTextNode as _$createTextNode } from '@opentui/solid'
@@ -59,7 +59,7 @@ function resumeLabel(until, now) {
     : `waiting for the reset \xB7 resumes ${clock(until, now)} \xB7 in ${countdown(seconds)}`
 }
 
-// src/rpc.ts
+// src/opencode/rpc.ts
 import { Rpc } from '@opencode/plugin/rpc'
 var hold = {
   type: 'object',
@@ -130,7 +130,7 @@ function isHoldState(value) {
   )
 }
 
-// src/tui.tsx
+// src/opencode/tui.tsx
 function useNow() {
   const [now, setNow] = createSignal(Date.now())
   const timer = setInterval(() => setNow(Date.now()), 1000)

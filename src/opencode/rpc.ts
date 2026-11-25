@@ -1,5 +1,5 @@
 import { Rpc } from '@opencode/plugin/rpc'
-import type { Hold } from './format.ts'
+import type { Hold } from '../format.ts'
 
 export interface HoldState extends Hold {
   readonly sessionID: string

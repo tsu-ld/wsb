@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 import { setTimeout as sleep } from 'node:timers/promises'
-import { setup } from '../src/runner.ts'
+import { setup } from '../src/opencode/plugin.ts'
 
 const event = () => ({
   sessionID: 's',
