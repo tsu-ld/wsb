@@ -28,7 +28,7 @@ function fixture() {
         },
         event: { subscribe: () => (async function* () {})() },
       },
-      { test: { resolve: read, ...extra } },
+      { test: { atError: read, ...extra } },
     )
     return { hooks, cleanup }
   }
@@ -184,7 +184,7 @@ async function interruptedSetup() {
       },
       event: { subscribe: () => events.subscribe() },
     },
-    { test: { resolve: async () => ({ kind: 'until', until }) } },
+    { test: { atError: async () => ({ kind: 'until', until }) } },
   )
   return { store, hooks, events, cleanup }
 }

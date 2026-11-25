@@ -266,11 +266,61 @@ test('the TUI is notified when a hold is published, released or removed as expir
   const dispose = await start(h.ctx, { test: until(Date.now() + 100_000) })
   await h.call('retry', refusal())
   expect(h.emitted).toEqual(['s'])
+  const sleeper = watch(h.call('context', route()))
+  await sleep(10)
   await h.call('prompt', { sessionID: 's' })
   expect(h.emitted).toEqual(['s', 's'])
+  await sleeper.settled
   h.store.set('wait/s', { until: Date.now() - 1, agent: 'build', model: route().model })
   await h.call('context', route())
   expect(h.emitted).toEqual(['s', 's', 's'])
   expect(h.store.size).toBe(0)
+  await dispose()
+})
+
+test('a prompt during a host-owned wait keeps the hold', async () => {
+  const h = host()
+  const deadline = Date.now() + 100_000
+  const dispose = await start(h.ctx, { test: until(deadline) })
+  const e = refusal()
+  await h.call('retry', e)
+  expect(e.decision.retry).toBe(true)
+  await h.call('prompt', { sessionID: 's' })
+  expect(h.store.size).toBe(1)
+  expect(await h.get()).toMatchObject({ sessionID: 's', until: deadline, providerID: 'test' })
+  expect(h.emitted).toEqual(['s'])
+  await dispose()
+})
+
+test('the kept hold is removed when the turn is dispatched after the deadline', async () => {
+  const h = host()
+  await setup(h.ctx, { test: until(Date.now() + 60) })
+  await h.call('retry', refusal())
+  await h.call('prompt', { sessionID: 's' })
+  expect(h.store.size).toBe(1)
+  await sleep(100)
+  await h.call('context', route())
+  expect(h.store.size).toBe(0)
+})
+
+test('a prompt releases a wait the plugin itself is sleeping', async () => {
+  const h = host()
+  await setup(h.ctx, { test: until(Date.now() + 100_000) })
+  await h.call('retry', refusal())
+  const sleeper = watch(h.call('context', route()))
+  await sleep(10)
+  expect(sleeper.state.done).toBe(false)
+  await h.call('prompt', { sessionID: 's' })
+  await sleeper.settled
+  expect(h.store.size).toBe(0)
+})
+
+test('after a restart a prompt releases a stored hold', async () => {
+  const h = host()
+  h.store.set('wait/s', { until: Date.now() + 100_000, agent: 'build', model: route().model })
+  const dispose = await start(h.ctx, { test: until(Date.now() + 100_000) })
+  await h.call('prompt', { sessionID: 's' })
+  expect(h.store.size).toBe(0)
+  expect(await h.get()).toBeNull()
   await dispose()
 })

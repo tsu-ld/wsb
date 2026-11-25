@@ -10,20 +10,10 @@ import type { ConnectionAPI } from './sources/chatgpt.ts'
 import type { Route } from './hold.ts'
 import type { Source } from './sources/index.ts'
 import type { Plugin } from '@opencode/plugin'
-import type { SessionRetry } from '@opencode/plugin/promise/session'
 
 export const MAX_SLEEP_MS = 2_147_483_647
 
-type Legacy = Readonly<{
-  resolve: (
-    ctx: Plugin.Context,
-    event: SessionRetry,
-    now: number,
-    earlier?: Reading,
-  ) => Reading | Promise<Reading>
-}>
-
-export type Registry = Readonly<{ [providerID: string]: Source | Legacy }>
+export type Registry = Readonly<{ [providerID: string]: Source }>
 
 export type Options = Readonly<{ maxSleepMs?: number }>
 
@@ -38,15 +28,10 @@ export async function setup(
   onChange?: (sessionID: string) => void,
   { maxSleepMs = MAX_SLEEP_MS }: Options = {},
 ) {
-  const adapted = new Map<string, Source>(
-    Object.entries(registry).map(([providerID, source]) => [
-      providerID,
-      'atError' in source
-        ? source
-        : { atError: (event, earlier, now) => source.resolve(ctx, event, now, earlier) },
-    ]),
-  )
+  const adapted = new Map<string, Source>(Object.entries(registry))
   const locks = new SessionLocks()
+  const hostOwned = new Set<string>()
+  const sleepers = new Map<string, number>()
   const observations = new Map<string, Route & Readonly<{ reading: Reading }>>()
   const epochs = new Map<string, number>()
   const wakes = new Map<string, PromiseWithResolvers<void>>()
@@ -109,7 +94,14 @@ export async function setup(
     }
   })
 
-  await ctx.session.hook('prompt', ({ sessionID }) => release(sessionID))
+  await ctx.session.hook('prompt', async ({ sessionID }) => {
+    if (hostOwned.has(sessionID) && !sleepers.get(sessionID)) {
+      observations.delete(sessionID)
+      epochs.set(sessionID, epoch(sessionID) + 1)
+      return
+    }
+    await release(sessionID)
+  })
 
   void (async () => {
     for await (const event of ctx.event.subscribe({
@@ -117,6 +109,7 @@ export async function setup(
       signal: unloading.signal,
     })) {
       if (event.data.reason !== 'shutdown') {
+        hostOwned.delete(event.data.sessionID)
         await release(event.data.sessionID)
       }
     }
@@ -159,6 +152,7 @@ export async function setup(
         return
       }
       event.decision = { retry: true, delay: Math.max(0, until - Date.now()) }
+      hostOwned.add(sessionID)
       wake(sessionID)
       onChange?.(sessionID)
     })
@@ -166,26 +160,38 @@ export async function setup(
 
   await ctx.session.hook('context', async (event) => {
     const sessionID = event.sessionID
-    while (!unloading.signal.aborted) {
-      const wakeup = woken(sessionID)
-      const decision = await locks.run(sessionID, async () => {
-        const next = dispatchDecision(await ctx.storage.get(key(sessionID)), event, Date.now())
-        if (next.kind === 'remove') {
-          await ctx.storage.remove(key(sessionID))
+    hostOwned.delete(sessionID)
+    sleepers.set(sessionID, (sleepers.get(sessionID) ?? 0) + 1)
+    try {
+      while (!unloading.signal.aborted) {
+        const wakeup = woken(sessionID)
+        const decision = await locks.run(sessionID, async () => {
+          const next = dispatchDecision(await ctx.storage.get(key(sessionID)), event, Date.now())
+          if (next.kind === 'remove') {
+            await ctx.storage.remove(key(sessionID))
+          }
+          return next
+        })
+        if (decision.kind === 'remove') {
+          onChange?.(sessionID)
         }
-        return next
-      })
-      if (decision.kind === 'remove') {
-        onChange?.(sessionID)
+        if (decision.kind !== 'sleep') {
+          return
+        }
+        await nap(Math.min(maxSleepMs, decision.delay), wakeup)
       }
-      if (decision.kind !== 'sleep') {
-        return
+    } finally {
+      const left = (sleepers.get(sessionID) ?? 1) - 1
+      if (left > 0) {
+        sleepers.set(sessionID, left)
+      } else {
+        sleepers.delete(sessionID)
       }
-      await nap(Math.min(maxSleepMs, decision.delay), wakeup)
     }
   })
 
   return () => {
+    hostOwned.clear()
     unloading.abort()
     unloaded.resolve()
   }

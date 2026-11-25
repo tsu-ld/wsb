@@ -32,7 +32,7 @@ For overlapping windows, first select the windows that actually block **this** m
 
 Recovery inherits the host's limits: OpenCode bounds the number of attempts; a provider can change its quota after reporting a reset. The plugin doesn't roll back tool side effects or guarantee exactly-once tool execution after a process crash. Native recovery is a managed-service feature, not a replacement for a daemon.
 
-Checkpoint reads and writes for one session are ordered. Provider lookups and sleeps happen **outside** that critical section so manual input can cancel an outstanding lookup or release a recovered wait. A wake-up rereads storage rather than deleting the checkpoint it originally saw: another refusal may have replaced it.
+Checkpoint reads and writes for one session are ordered. Provider lookups and sleeps happen **outside** that critical section so manual input can cancel an outstanding lookup or release a recovered wait. A message typed while OpenCode itself is sleeping on a delay this process set keeps the wait shown, because OpenCode cannot be told to stop that sleep; the held turn still runs at the reset. A wake-up rereads storage rather than deleting the checkpoint it originally saw: another refusal may have replaced it.
 
 ### Proof required for changes
 
