@@ -6,17 +6,42 @@
     <title>wsb: auto-resume OpenCode when your usage limit resets</title>
     <meta
       name="description"
-      content="OpenCode plugin. When your subscription hits its usage limit, it waits for the reset and retries the same turn."
+      content="OpenCode plugin. When Claude Max, claude-agent, ChatGPT/Codex or OpenCode Go hits a usage limit and reports when it resets, OpenCode retries the same turn then."
     />
-    <meta name="theme-color" content="#0b0a09" />
+    <meta name="theme-color" content="#0c0b0a" />
     <link rel="canonical" href="https://wsb.tsu.ar/" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="assets/icon-180.png" />
+    <link rel="preload" href="fonts/Anton-Regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link
+      rel="preload"
+      href="fonts/BarlowCondensed-SemiBold.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="fonts/IBMPlexMono-Regular.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <script>
+      document.documentElement.classList.add('js')
+      addEventListener('DOMContentLoaded', () => {
+        if (!document.documentElement.classList.contains('ready')) {
+          document.documentElement.classList.remove('js')
+        }
+      })
+    </script>
+    <link rel="stylesheet" href="style.css" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="wsb" />
-    <meta property="og:title" content="wsb: it's so over, we're so back" />
+    <meta property="og:title" content="Your limit resets at 03:17. OpenCode resumes at 03:17." />
     <meta
       property="og:description"
-      content="OpenCode plugin. When your subscription hits its usage limit, it waits for the reset and retries the same turn."
+      content="OpenCode plugin. When Claude Max, claude-agent, ChatGPT/Codex or OpenCode Go hits a usage limit and reports when it resets, OpenCode retries the same turn then."
     />
     <meta property="og:url" content="https://wsb.tsu.ar/" />
     <meta property="og:image" content="https://wsb.tsu.ar/assets/social.png" />
@@ -24,48 +49,531 @@
     <meta property="og:image:height" content="640" />
     <meta
       property="og:image:alt"
-      content="wsb: IT’S SO OVER in solid type over WE’RE SO BACK in outline, next to an OpenCode session that hit the 5-hour limit at 02:52, with the wsb panel showing 24 minutes left until the 03:17 reset."
+      content="wsb poster on black: the lines Your limit resets at and OpenCode resumes at over giant cream numerals 03:17, then You sleep through both. Five diagonal stripes run behind an OpenCode session whose wsb panel reads waiting for the reset, resumes 03:17, in 24m 59s."
     />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="https://wsb.tsu.ar/assets/social.png" />
-    <meta
-      name="twitter:image:alt"
-      content="wsb: IT’S SO OVER in solid type over WE’RE SO BACK in outline, next to an OpenCode session held by wsb until the 03:17 reset."
-    />
-    <link rel="apple-touch-icon" href="assets/icon-180.png" />
-    <link rel="alternate" type="text/markdown" title="wsb for LLMs" href="/llms.txt" />
-    <link rel="ard" href="/.well-known/ard.json" />
     <meta name="twitter:title" content="wsb: auto-resume OpenCode when your usage limit resets" />
     <meta
       name="twitter:description"
-      content="Free OpenCode plugin. When Claude Max, ChatGPT/Codex or OpenCode Go hits its usage limit, wsb waits for the reset and retries the same turn. No “continue” at 3 AM."
+      content="OpenCode plugin. When Claude Max, claude-agent, ChatGPT/Codex or OpenCode Go hits a usage limit and reports when it resets, OpenCode retries the same turn then."
     />
+    <meta name="twitter:image" content="https://wsb.tsu.ar/assets/social.png" />
+    <meta
+      name="twitter:image:alt"
+      content="wsb poster: giant 03:17 under Your limit resets at, OpenCode resumes at, with five stripes running behind an OpenCode session held by wsb."
+    />
+    <link rel="alternate" type="text/markdown" title="wsb for LLMs" href="/llms.txt" />
+    <link rel="describedby" href="/llms.txt" />
+    <link rel="ard" href="/.well-known/ard.json" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
         "name": "wsb",
         "alternateName": "We’re So Back",
-        "description": "OpenCode plugin that waits for a subscription usage limit to reset and retries the same turn with the same model. Works with Claude Max (via opencode-with-claude), ChatGPT/Codex and OpenCode Go.",
+        "description": "OpenCode plugin. When a subscription usage limit is hit and the provider reports when it resets, OpenCode retries the same turn at that time, in the same session with the same model. Works with Claude Max (via opencode-with-claude), OpenCode’s claude-agent provider, ChatGPT/Codex and OpenCode Go.",
         "url": "https://wsb.tsu.ar/",
         "image": "https://wsb.tsu.ar/assets/social.png",
         "applicationCategory": "DeveloperApplication",
         "applicationSubCategory": "OpenCode plugin",
-        "operatingSystem": "macOS, Linux, Windows",
         "softwareRequirements": "OpenCode 2.3 or newer",
         "license": "https://opensource.org/licenses/MIT",
         "isAccessibleForFree": true,
-        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
         "downloadUrl": "https://github.com/tsu-ld/wsb",
         "sameAs": ["https://github.com/tsu-ld/wsb"],
-        "author": { "@type": "Person", "name": "tsu-ld", "url": "https://github.com/tsu-ld" },
-        "keywords": "OpenCode, OpenCode plugin, usage limit, rate limit, auto resume, Claude Max, Codex, ChatGPT, OpenCode Go, AI coding agent"
+        "author": {
+          "@type": "Person",
+          "name": "tsu-ld",
+          "url": "https://github.com/tsu-ld"
+        },
+        "keywords": "OpenCode, OpenCode plugin, usage limit, 5-hour limit, auto resume, Claude Max, claude-agent, Codex, ChatGPT, OpenCode Go, AI coding agent"
       }
     </script>
+    <script src="main.js" defer></script>
   </head>
   <body>
+    <svg class="sprite" aria-hidden="true">
+      <symbol id="i-out" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8" /></symbol>
+      <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z" /></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></symbol>
+      <symbol id="p-run" viewBox="0 0 24 24">
+        <path d="M4 5.5 6.2 3.3 14.9 12l-8.7 8.7L4 18.5l6.5-6.5zM14 17.5h7v3.2h-7z" />
+      </symbol>
+      <symbol id="p-limit" viewBox="0 0 24 24">
+        <path
+          d="M17 2.5h3.5v19H17zM3.5 4.5H14v3.4H3.5zM3.5 10.3H14v3.4H3.5zM3.5 16.1H14v3.4H3.5z"
+        />
+      </symbol>
+      <symbol id="p-read" viewBox="0 0 24 24">
+        <path
+          fill-rule="evenodd"
+          d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20m0 3.2a6.8 6.8 0 1 0 0 13.6 6.8 6.8 0 0 0 0-13.6M10.5 7h3v4.4l3.2 1.9-1.5 2.6-4.7-2.8z"
+        />
+      </symbol>
+      <symbol id="p-hold" viewBox="0 0 24 24">
+        <path d="M5 2.5h14v3.6L14.2 12l4.8 5.9v3.6H5v-3.6L9.8 12 5 6.1z" />
+      </symbol>
+      <symbol id="p-resume" viewBox="0 0 24 24">
+        <path d="M3.5 4.5H7v15H3.5zM9.5 3.5 21.5 12l-12 8.5z" />
+      </symbol>
+    </svg>
+
     <main>
-      <h1>wsb</h1>
+      <section class="hero" data-beat="hold" data-step="0">
+        <header class="mast">
+          <a class="brand" href="./" aria-label="wsb home"
+            ><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>wsb</a
+          >
+          <p class="tags">
+            <span>OpenCode plugin</span><span>Claude Max</span><span>claude-agent</span
+            ><span>ChatGPT/Codex</span><span>OpenCode Go</span><span>MIT</span>
+          </p>
+          <a class="gh" href="https://github.com/tsu-ld/wsb"
+            >GitHub<svg class="ic" aria-hidden="true"><use href="#i-out" /></svg
+          ></a>
+        </header>
+
+        <div class="board">
+          <h1 class="claim">
+            <span class="l">Your limit resets at<span class="vh"> 03:17.</span></span>
+            <span class="l">OpenCode resumes at</span>
+            <span class="num">03:17</span><span class="vh">.</span>
+            <span class="l c">You sleep through both.</span>
+          </h1>
+
+          <section class="get" id="install" aria-label="Install wsb">
+            <div class="get-bar">
+              <div class="modes" role="tablist" aria-label="Install with">
+                <button
+                  type="button"
+                  role="tab"
+                  id="mode-agent"
+                  aria-selected="true"
+                  aria-controls="panel-agent"
+                  data-note="Copied. Paste it into your agent."
+                  data-text="Install the wsb plugin for my OpenCode user: run `opencode plugin add github:tsu-ld/wsb` and check that it loads."
+                >
+                  Ask your agent
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  id="mode-terminal"
+                  aria-selected="false"
+                  aria-controls="panel-terminal"
+                  tabindex="-1"
+                  data-note="Copied. Paste it into a terminal."
+                  data-text="opencode plugin add github:tsu-ld/wsb"
+                >
+                  Terminal
+                </button>
+              </div>
+              <button type="button" class="copy" data-idle="Copy" data-done="Copied">Copy</button>
+            </div>
+            <p
+              class="get-text"
+              id="panel-agent"
+              role="tabpanel"
+              tabindex="0"
+              aria-labelledby="mode-agent"
+            >
+              Install the wsb plugin for my OpenCode user: run `opencode plugin add
+              <span class="nb">github:tsu-ld/wsb`</span> and check that it loads.
+            </p>
+            <p
+              class="get-text"
+              id="panel-terminal"
+              role="tabpanel"
+              tabindex="0"
+              aria-labelledby="mode-terminal"
+              hidden
+            >
+              opencode plugin add <span class="nb">github:tsu-ld/wsb</span>
+            </p>
+            <p class="vh" role="status"></p>
+          </section>
+
+          <div class="film">
+            <p class="fig" aria-hidden="true">
+              <span><i class="k-solid"></i>sent</span><span><i class="k-dash"></i>scheduled</span>
+            </p>
+            <p class="clock" aria-hidden="true">
+              <span class="clock-l">Local time</span
+              ><span class="clock-t"><i>0</i><i>2</i><b>:</b><i>5</i><i>2</i></span>
+            </p>
+
+            <div class="stage">
+              <div class="band" aria-hidden="true">
+                <i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i>
+              </div>
+              <figure
+                class="tui"
+                role="img"
+                aria-label="The same OpenCode session during the wait. The composer is empty, OpenCode's retry line counts down and the wsb panel reads: waiting for the reset, resumes 03:17."
+              >
+                <span class="flyer" hidden>03:17</span>
+                <div class="t-title">
+                  <i class="spin"></i><b>Refactor search index</b><span>+</span>
+                </div>
+                <div class="t-user"><p>refactor the search index and run the tests</p></div>
+                <p class="t-say s1">Moving the ranking into src/rank.ts.</p>
+                <p class="t-say s2">14 call sites updated. Running the tests.</p>
+                <p class="t-retry">
+                  <svg class="warn" viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M8 1.6 15 14H1zM8 6.4v3.6M8 11.6v.7" /></svg
+                  ><span class="r-pre"
+                    >Retrying in <span class="secs">1499</span>s · attempt 2 · </span
+                  >You've hit your 5-hour limit · resets 3:17am (Europe/London) Resets at
+                  <span class="nb">2026-11-25T<span class="src">03:17</span>:00.000Z.</span>
+                </p>
+                <p class="t-done">Done. The index ranks by the new score and 128 tests pass.</p>
+                <p class="t-agent"><b>Build</b> · Claude Opus 5.5</p>
+                <p class="t-panel">
+                  <span class="mark rise"><i></i><i></i><i></i></span><b>wsb</b> ·
+                  <span class="p-wait"
+                    >waiting for the reset · resumes <span class="dst">03:17</span> · in
+                    <span class="left">24m 59s</span></span
+                  ><span class="p-go">resuming…</span>
+                </p>
+                <div class="t-composer">
+                  <i class="caret"></i>
+                  <p><b>Build</b> · Claude Opus 5.5</p>
+                </div>
+                <p class="t-status">
+                  <span class="busy"
+                    ><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i> esc
+                    <em>interrupt</em></span
+                  ><span class="cwd">~/shop</span
+                  ><span class="st-wsb">wsb <span class="short">24m</span></span
+                  ><span class="keys"
+                    >shift+tab <em>agents</em> &nbsp;ctrl+p <em>commands</em></span
+                  >
+                </p>
+              </figure>
+              <p class="flag over" aria-hidden="true"><b>02:52</b> it’s so over</p>
+              <p class="flag back" aria-hidden="true">
+                <b>03:17</b> <span class="f-wait">resumes</span
+                ><span class="f-go">we’re so back</span>
+              </p>
+            </div>
+
+            <div class="ctl">
+              <button type="button" class="play" aria-label="Pause the animation">
+                <svg class="ic" aria-hidden="true"><use href="#i-pause" /></svg>
+              </button>
+              <ol class="tiles">
+                <li>
+                  <button type="button" data-go="run">
+                    <svg aria-hidden="true"><use href="#p-run" /></svg>Run
+                  </button>
+                </li>
+                <li>
+                  <button type="button" data-go="limit">
+                    <svg aria-hidden="true"><use href="#p-limit" /></svg>Limit
+                  </button>
+                </li>
+                <li>
+                  <button type="button" data-go="read">
+                    <svg aria-hidden="true"><use href="#p-read" /></svg>Read
+                  </button>
+                </li>
+                <li>
+                  <button type="button" data-go="hold" aria-current="step">
+                    <svg aria-hidden="true"><use href="#p-hold" /></svg>Hold
+                  </button>
+                </li>
+                <li>
+                  <button type="button" data-go="resume">
+                    <svg aria-hidden="true"><use href="#p-resume" /></svg>Resume
+                  </button>
+                </li>
+              </ol>
+            </div>
+
+            <ol class="beats">
+              <li
+                data-beat="run"
+                data-label="An OpenCode session at 02:44. One prompt: refactor the search index and run the tests. The agent is working."
+              >
+                <b>02:44</b> Your agent is mid-turn. You went to bed.
+              </li>
+              <li
+                data-beat="limit"
+                data-label="The same OpenCode session at 02:52. The provider's refusal appears: You've hit your 5-hour limit, resets 3:17am, Resets at 2026-11-25T03:17:00.000Z."
+              >
+                <b>02:52</b> The provider refuses, and says when: resets 3:17am.
+              </li>
+              <li
+                data-beat="read"
+                data-label="The same OpenCode session at 02:52. Under the refusal the wsb panel appears: waiting for the reset, resumes 03:17. OpenCode's own retry line now counts down to that time."
+              >
+                <b>02:52</b> wsb reads that time and sets OpenCode’s own retry to it. No guess.
+              </li>
+              <li
+                data-beat="hold"
+                data-label="The same OpenCode session during the wait. The composer is empty, OpenCode's retry line counts down and the wsb panel reads: waiting for the reset, resumes 03:17."
+              >
+                <b>24m 59s</b> Nothing is typed. No model call is made.
+              </li>
+              <li
+                data-beat="resume"
+                data-label="The same OpenCode session at 03:17. The refusal and the wsb panel are gone and the agent answers: Done. The index ranks by the new score and 128 tests pass. There is still one prompt."
+              >
+                <b>03:17</b> OpenCode retries the same turn. One prompt, same session, same model.
+              </li>
+            </ol>
+          </div>
+        </div>
+      </section>
+      <section class="said" aria-labelledby="said-h">
+        <h2 class="vh" id="said-h">The problem, in the words of an OpenCode user</h2>
+        <p class="tag"><b>02:52</b> it’s so over</p>
+        <blockquote
+          class="quote"
+          cite="https://github.com/anomalyco/opencode/issues/43126#issuecomment-6139829604"
+        >
+          <p>
+            <span>after the reset</span> <span>I have to type</span>
+            <span
+              ><span class="strike">"continue"<i aria-hidden="true"></i></span
+            ></span>
+            <span>by hand.</span>
+          </p>
+        </blockquote>
+        <p class="by">
+          Israel-Kli, on
+          <a href="https://github.com/anomalyco/opencode/issues/43126#issuecomment-6139829604"
+            >anomalyco/opencode #43126<svg class="ic" aria-hidden="true"><use href="#i-out" /></svg
+          ></a>
+        </p>
+      </section>
+
+      <section class="facts" aria-labelledby="facts-h">
+        <h2 class="vh" id="facts-h">What wsb does, in five lines</h2>
+        <ol class="rows">
+          <li>
+            <b>3:17</b>
+            <p>
+              <strong>Read, not guessed</strong
+              ><span
+                >The reset time your provider reports: in its error, its usage endpoint or your
+                Meridian proxy.</span
+              >
+            </p>
+          </li>
+          <li>
+            <b>0</b>
+            <p>
+              <strong>Model calls while it waits</strong
+              ><span>No probe prompt, no polling the model, no “continue”.</span>
+            </p>
+          </li>
+          <li>
+            <b>1</b>
+            <p>
+              <strong>Prompt: the one you sent</strong
+              ><span
+                >OpenCode retries the same turn, in the same session, with the same model.</span
+              >
+            </p>
+          </li>
+          <li>
+            <b>4</b>
+            <p>
+              <strong>Subscription routes</strong
+              ><span>Claude Max · claude-agent · ChatGPT/Codex · OpenCode Go</span>
+            </p>
+          </li>
+          <li>
+            <b>MIT</b>
+            <p>
+              <strong>Open source</strong><span>Tests in the repo. Read every line on GitHub.</span>
+            </p>
+          </li>
+        </ol>
+      </section>
+
+      <section class="dawn" aria-labelledby="dawn-h">
+        <p class="tag"><b>07:00</b> we’re so back</p>
+        <h2 class="dawn-h" id="dawn-h">
+          <span class="num">07:00</span><span class="vh">. </span
+          ><span class="l">You slept through both.</span>
+        </h2>
+        <section class="get" aria-label="Install wsb from here">
+          <div class="get-bar">
+            <div class="modes" role="tablist" aria-label="Install with">
+              <button
+                type="button"
+                role="tab"
+                id="dawn-agent"
+                aria-selected="true"
+                aria-controls="dawn-panel-agent"
+                data-note="Copied. Paste it into your agent."
+                data-text="Install the wsb plugin for my OpenCode user: run `opencode plugin add github:tsu-ld/wsb` and check that it loads."
+              >
+                Ask your agent
+              </button>
+              <button
+                type="button"
+                role="tab"
+                id="dawn-terminal"
+                aria-selected="false"
+                aria-controls="dawn-panel-terminal"
+                tabindex="-1"
+                data-note="Copied. Paste it into a terminal."
+                data-text="opencode plugin add github:tsu-ld/wsb"
+              >
+                Terminal
+              </button>
+            </div>
+            <button type="button" class="copy" data-idle="Copy" data-done="Copied">Copy</button>
+          </div>
+          <p
+            class="get-text"
+            id="dawn-panel-agent"
+            role="tabpanel"
+            tabindex="0"
+            aria-labelledby="dawn-agent"
+          >
+            Install the wsb plugin for my OpenCode user: run `opencode plugin add
+            <span class="nb">github:tsu-ld/wsb`</span> and check that it loads.
+          </p>
+          <p
+            class="get-text"
+            id="dawn-panel-terminal"
+            role="tabpanel"
+            tabindex="0"
+            aria-labelledby="dawn-terminal"
+            hidden
+          >
+            opencode plugin add <span class="nb">github:tsu-ld/wsb</span>
+          </p>
+          <p class="vh" role="status"></p>
+        </section>
+        <svg class="sun" viewBox="0 0 1000 500" aria-hidden="true">
+          <circle cx="500" cy="500" r="466" />
+          <circle cx="500" cy="500" r="388" />
+          <circle cx="500" cy="500" r="310" />
+          <circle cx="500" cy="500" r="232" />
+          <circle cx="500" cy="500" r="154" />
+        </svg>
+      </section>
+
+      <section class="qa" aria-labelledby="qa-h">
+        <h2 id="qa-h">Q&amp;A</h2>
+        <div class="qa-list">
+          <details>
+            <summary>Does it bypass my limit?</summary>
+            <p>
+              No. wsb waits for the reset your provider reports, and then OpenCode retries. It does
+              not add quota and it does not hide the limit.
+            </p>
+          </details>
+          <details>
+            <summary>Does waiting use quota?</summary>
+            <p>
+              wsb makes zero model calls while it waits. At the reset OpenCode makes its ordinary
+              retry of the same turn, and that retry uses quota like any other. wsb does not save
+              quota.
+            </p>
+          </details>
+          <details>
+            <summary>What runs at the reset?</summary>
+            <p>
+              The turn you already sent. wsb tells OpenCode to retry at the reset, through
+              OpenCode’s own retry, and has no code path that writes a prompt. Press Esc and the
+              hold is gone. A message you send instead is queued: in a session that has not
+              restarted, OpenCode still retries the held turn at the reset and then answers the new
+              one.
+            </p>
+          </details>
+          <details>
+            <summary>Where does the reset time come from?</summary>
+            <p>
+              Claude Max through opencode-with-claude: the Meridian proxy OpenCode already uses.
+              OpenCode’s claude-agent provider: the refusal itself, which ends with the reset
+              timestamp. ChatGPT/Codex: the error, or ChatGPT’s usage endpoint. OpenCode Go: the Go
+              usage endpoint for the five-hour, weekly and monthly limits, or the refusal. If no
+              reset time can be read, wsb leaves OpenCode’s normal retry alone.
+            </p>
+          </details>
+          <details>
+            <summary>Does OpenCode have to stay open?</summary>
+            <p>
+              wsb is a plugin, not a daemon: it cannot wake OpenCode or start a turn by itself, so
+              nothing resumes while OpenCode is not running. If OpenCode’s managed service starts
+              again and recovers the turn, wsb waits for what is left of the hold, or lets the turn
+              continue if the reset has already passed. The saved deadline holds no prompt and no
+              credentials.
+            </p>
+          </details>
+          <details>
+            <summary>What does it send, and to whom?</summary>
+            <p>
+              Never a prompt. To learn the reset time it may make usage requests with the credential
+              OpenCode is already using for that provider: to your Meridian proxy for Claude Max, to
+              ChatGPT’s usage endpoint for Codex, to the OpenCode Go usage endpoint for Go. Nothing
+              goes to Anthropic and no credential is stored. wsb does not make a third-party harness
+              allowed: your provider’s terms still apply.
+            </p>
+          </details>
+          <details>
+            <summary>How is it different from the others?</summary>
+            <p>
+              <a
+                href="https://code.claude.com/docs/en/interactive-mode#wait-for-a-usage-limit-to-reset"
+                >Claude Code’s own auto-continue</a
+              >
+              is a feature of Claude Code’s interactive sessions.
+              <a href="https://github.com/Mte90/opencode-auto-resume">opencode-auto-resume</a>
+              waits, by default, on a ladder of cooldowns: 15 minutes, 30 minutes, 1 hour, then 2
+              hours. <a href="https://unsnooze.dev">unsnooze</a> is a daemon for eight CLIs that
+              types a resume message into the terminal; in OpenCode it only revives sessions whose
+              process died.
+              <a href="https://github.com/terryso/claude-auto-resume">claude-auto-resume</a> probes
+              Claude with a prompt and then, by default, starts a new run. wsb is deliberately
+              narrow: OpenCode only, subscriptions only, no metered API keys. Checked on 2026-11-24.
+            </p>
+          </details>
+          <details>
+            <summary>When does wsb step aside?</summary>
+            <p>
+              wsb holds a turn only when it can read a reset time no more than 31 days away;
+              otherwise OpenCode’s normal retry runs as if wsb were not there. Esc drops the hold.
+              OpenCode bounds how many times it retries a turn, and wsb inherits that limit. If the
+              provider refuses again and reports a new reset time, wsb can hold again while OpenCode
+              has retries left.
+            </p>
+          </details>
+          <details>
+            <summary>What does it run on?</summary>
+            <p>
+              OpenCode 2.3 or newer and one subscription: Claude Max through opencode-with-claude,
+              OpenCode’s claude-agent provider, ChatGPT/Codex signed in with OAuth, or OpenCode Go.
+              To remove wsb, delete its entry from <code>plugins</code> in your OpenCode config.
+            </p>
+          </details>
+        </div>
+      </section>
     </main>
+
+    <footer class="foot">
+      <a class="brand" href="./" aria-label="wsb home"
+        ><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>wsb</a
+      >
+      <p class="tags">
+        <span>We’re so back</span><span>MIT</span>
+        <span
+          ><a href="https://github.com/tsu-ld/wsb"
+            >GitHub<svg class="ic" aria-hidden="true"><use href="#i-out" /></svg></a
+        ></span>
+        <span><a href="/llms.txt">llms.txt</a></span>
+      </p>
+    </footer>
   </body>
 </html>
