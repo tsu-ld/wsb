@@ -81,17 +81,31 @@ var state = {
   required: ['sessionID', ...hold.required],
   additionalProperties: false,
 }
+var reason = {
+  type: 'object',
+  properties: {
+    at: { type: 'number' },
+    reason: { type: 'string' },
+  },
+  required: ['at', 'reason'],
+  additionalProperties: false,
+}
+var session = {
+  type: 'object',
+  properties: { sessionID: { type: 'string' } },
+  required: ['sessionID'],
+  additionalProperties: false,
+}
 var Definition = Rpc.define({
   id: 'wsb.hold',
   methods: {
     get: {
-      input: {
-        type: 'object',
-        properties: { sessionID: { type: 'string' } },
-        required: ['sessionID'],
-        additionalProperties: false,
-      },
+      input: session,
       output: { anyOf: [{ type: 'null' }, state] },
+    },
+    why: {
+      input: session,
+      output: { anyOf: [{ type: 'null' }, reason] },
     },
   },
   events: {
@@ -111,6 +125,12 @@ function changedSession(value) {
     return
   }
   return typeof value.sessionID === 'string' ? value.sessionID : undefined
+}
+function isReason(value) {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+  return 'at' in value && number(value.at) && 'reason' in value && typeof value.reason === 'string'
 }
 function isHoldState(value) {
   if (!value || typeof value !== 'object') {
@@ -139,6 +159,7 @@ function useNow() {
 }
 function useHold(context, sessionID) {
   const [hold, setHold] = createSignal()
+  const [why, setWhy] = createSignal()
   const rpc = context.client.rpc(Definition)
   let turn = 0
   let asked = 0
@@ -146,18 +167,19 @@ function useHold(context, sessionID) {
   const load = (id) => {
     const current = ++turn
     const directory = context.data.session.get(id)?.location.directory
+    const options = directory
+      ? {
+          location: {
+            directory,
+          },
+        }
+      : undefined
     rpc
       .get(
         {
           sessionID: id,
         },
-        directory
-          ? {
-              location: {
-                directory,
-              },
-            }
-          : undefined,
+        options,
       )
       .then(
         (next) => {
@@ -167,6 +189,25 @@ function useHold(context, sessionID) {
         },
         () => {
           return
+        },
+      )
+    rpc
+      .why(
+        {
+          sessionID: id,
+        },
+        options,
+      )
+      .then(
+        (next) => {
+          if (current === turn && sessionID() === id) {
+            setWhy(isReason(next) ? next : undefined)
+          }
+        },
+        () => {
+          if (current === turn && sessionID() === id) {
+            setWhy(undefined)
+          }
         },
       )
   }
@@ -198,6 +239,7 @@ function useHold(context, sessionID) {
   createEffect(
     on(sessionID, (id) => {
       setHold(undefined)
+      setWhy(undefined)
       asked = 0
       if (id) {
         load(id)
@@ -206,11 +248,12 @@ function useHold(context, sessionID) {
   )
   return {
     hold,
+    why,
     refresh,
   }
 }
 function Panel(props) {
-  const { hold, refresh } = useHold(props.context, () => props.sessionID)
+  const { hold, why, refresh } = useHold(props.context, () => props.sessionID)
   const now = useNow()
   const theme = props.context.theme
   const warning = theme.text.feedback.warning.base
@@ -225,48 +268,85 @@ function Panel(props) {
     get when() {
       return hold()
     },
+    get fallback() {
+      return _$createComponent(Show, {
+        get when() {
+          return why()
+        },
+        children: (reason) =>
+          (() => {
+            var _el$ = _$createElement('box'),
+              _el$2 = _$createElement('text'),
+              _el$3 = _$createElement('span')
+            _$insertNode(_el$, _el$2)
+            _$setProp(_el$, 'flexShrink', 0)
+            _$setProp(_el$, 'paddingLeft', 3)
+            _$setProp(_el$, 'paddingTop', 1)
+            _$setProp(_el$, 'paddingBottom', 1)
+            _$insertNode(_el$2, _el$3)
+            _$insertNode(_el$3, _$createTextNode(`wsb`))
+            _$insert(_el$2, () => ` \xB7 not waiting: ${reason().reason}`, null)
+            _$effect(
+              (_p$) => {
+                var _v$ = theme.text.muted,
+                  _v$2 = {
+                    fg: theme.text.base,
+                  }
+                _v$ !== _p$.e && (_p$.e = _$setProp(_el$2, 'fg', _v$, _p$.e))
+                _v$2 !== _p$.t && (_p$.t = _$setProp(_el$3, 'style', _v$2, _p$.t))
+                return _p$
+              },
+              {
+                e: undefined,
+                t: undefined,
+              },
+            )
+            return _el$
+          })(),
+      })
+    },
     children: (current) => {
       return (() => {
-        var _el$ = _$createElement('box'),
-          _el$2 = _$createElement('text'),
-          _el$3 = _$createElement('span'),
-          _el$5 = _$createElement('span'),
-          _el$6 = _$createElement('span'),
-          _el$8 = _$createTextNode(`  `),
-          _el$9 = _$createElement('span')
-        _$insertNode(_el$, _el$2)
-        _$setProp(_el$, 'flexShrink', 0)
-        _$setProp(_el$, 'paddingLeft', 3)
-        _$setProp(_el$, 'paddingTop', 1)
-        _$setProp(_el$, 'paddingBottom', 1)
-        _$insertNode(_el$2, _el$3)
-        _$insertNode(_el$2, _el$5)
-        _$insertNode(_el$2, _el$6)
-        _$insertNode(_el$2, _el$8)
-        _$insertNode(_el$2, _el$9)
-        _$insertNode(_el$3, _$createTextNode(`\u2588`))
-        _$setProp(_el$5, 'style', {
+        var _el$5 = _$createElement('box'),
+          _el$6 = _$createElement('text'),
+          _el$7 = _$createElement('span'),
+          _el$9 = _$createElement('span'),
+          _el$0 = _$createElement('span'),
+          _el$10 = _$createTextNode(`  `),
+          _el$11 = _$createElement('span')
+        _$insertNode(_el$5, _el$6)
+        _$setProp(_el$5, 'flexShrink', 0)
+        _$setProp(_el$5, 'paddingLeft', 3)
+        _$setProp(_el$5, 'paddingTop', 1)
+        _$setProp(_el$5, 'paddingBottom', 1)
+        _$insertNode(_el$6, _el$7)
+        _$insertNode(_el$6, _el$9)
+        _$insertNode(_el$6, _el$0)
+        _$insertNode(_el$6, _el$10)
+        _$insertNode(_el$6, _el$11)
+        _$insertNode(_el$7, _$createTextNode(`\u2588`))
+        _$setProp(_el$9, 'style', {
           fg: error,
         })
-        _$insert(_el$5, () => rise(current().since, current().until, now()))
-        _$insertNode(_el$6, _$createTextNode(`\u2588`))
-        _$setProp(_el$6, 'style', {
+        _$insert(_el$9, () => rise(current().since, current().until, now()))
+        _$insertNode(_el$0, _$createTextNode(`\u2588`))
+        _$setProp(_el$0, 'style', {
           fg: warning,
         })
-        _$insertNode(_el$9, _$createTextNode(`wsb`))
-        _$insert(_el$2, () => ` \xB7 ${resumeLabel(current().until, now())}`, null)
+        _$insertNode(_el$11, _$createTextNode(`wsb`))
+        _$insert(_el$6, () => ` \xB7 ${resumeLabel(current().until, now())}`, null)
         _$effect(
           (_p$) => {
-            var _v$ = theme.text.muted,
-              _v$2 = {
+            var _v$3 = theme.text.muted,
+              _v$4 = {
                 fg: theme.text.base,
               },
-              _v$3 = {
+              _v$5 = {
                 fg: theme.text.base,
               }
-            _v$ !== _p$.e && (_p$.e = _$setProp(_el$2, 'fg', _v$, _p$.e))
-            _v$2 !== _p$.t && (_p$.t = _$setProp(_el$3, 'style', _v$2, _p$.t))
-            _v$3 !== _p$.a && (_p$.a = _$setProp(_el$9, 'style', _v$3, _p$.a))
+            _v$3 !== _p$.e && (_p$.e = _$setProp(_el$6, 'fg', _v$3, _p$.e))
+            _v$4 !== _p$.t && (_p$.t = _$setProp(_el$7, 'style', _v$4, _p$.t))
+            _v$5 !== _p$.a && (_p$.a = _$setProp(_el$11, 'style', _v$5, _p$.a))
             return _p$
           },
           {
@@ -275,7 +355,7 @@ function Panel(props) {
             a: undefined,
           },
         )
-        return _el$
+        return _el$5
       })()
     },
   })
@@ -296,13 +376,13 @@ function Status(props) {
     },
     children: (current) =>
       (() => {
-        var _el$1 = _$createElement('text')
-        _$setProp(_el$1, 'flexShrink', 0)
-        _$insert(_el$1, () => `wsb ${compact(remaining(current().until, now()))}`)
+        var _el$13 = _$createElement('text')
+        _$setProp(_el$13, 'flexShrink', 0)
+        _$insert(_el$13, () => `wsb ${compact(remaining(current().until, now()))}`)
         _$effect((_$p) =>
-          _$setProp(_el$1, 'fg', props.context.theme.text.feedback.warning.base, _$p),
+          _$setProp(_el$13, 'fg', props.context.theme.text.feedback.warning.base, _$p),
         )
-        return _el$1
+        return _el$13
       })(),
   })
 }

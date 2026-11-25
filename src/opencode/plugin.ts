@@ -8,6 +8,7 @@ import { sources } from './sources/index.ts'
 import type { Reading } from '../deadline.ts'
 import type { ConnectionAPI } from './sources/chatgpt.ts'
 import type { Route } from './hold.ts'
+import type { Reason } from './rpc.ts'
 import type { Source } from './sources/index.ts'
 import type { Plugin } from '@opencode/plugin'
 
@@ -16,6 +17,8 @@ export const MAX_SLEEP_MS = 2_147_483_647
 export type Registry = Readonly<{ [providerID: string]: Source }>
 
 export type Options = Readonly<{ maxSleepMs?: number }>
+
+export const MAX_REASONS = 200
 
 const threw = (error: unknown): Reading => ({
   kind: 'other',
@@ -35,6 +38,7 @@ export async function setup(
   const observations = new Map<string, Route & Readonly<{ reading: Reading }>>()
   const epochs = new Map<string, number>()
   const wakes = new Map<string, PromiseWithResolvers<void>>()
+  const reasons = new Map<string, Reason>()
   const unloading = new AbortController()
   const unloaded = Promise.withResolvers<void>()
 
@@ -67,8 +71,21 @@ export async function setup(
     timer.abort()
   }
 
+  const remember = (sessionID: string, reason: string) => {
+    reasons.delete(sessionID)
+    reasons.set(sessionID, { at: Date.now(), reason })
+    for (const oldest of reasons.keys()) {
+      if (reasons.size <= MAX_REASONS) {
+        break
+      }
+      reasons.delete(oldest)
+    }
+    onChange?.(sessionID)
+  }
+
   const release = async (sessionID: string) => {
     observations.delete(sessionID)
+    reasons.delete(sessionID)
     epochs.set(sessionID, epoch(sessionID) + 1)
     await locks.run(sessionID, () => ctx.storage.remove(key(sessionID)))
     wake(sessionID)
@@ -81,6 +98,9 @@ export async function setup(
     }
     const sessionID = event.sessionID
     observations.delete(sessionID)
+    if ((event.response?.status ?? 400) < 400 && reasons.delete(sessionID)) {
+      onChange?.(sessionID)
+    }
     const atResponse = adapted.get(event.model.providerID)?.atResponse
     if (!atResponse) {
       return
@@ -128,11 +148,14 @@ export async function setup(
     const reading = await Promise.resolve()
       .then(() => source.atError(event, earlier, Date.now()))
       .catch(threw)
-    if (
-      !current(sessionID, started) ||
-      reading.kind !== 'until' ||
-      !plausible(reading.until, Date.now())
-    ) {
+    if (!current(sessionID, started)) {
+      return
+    }
+    if (reading.kind === 'unknown') {
+      remember(sessionID, reading.reason)
+      return
+    }
+    if (reading.kind !== 'until' || !plausible(reading.until, Date.now())) {
       return
     }
     const until = reading.until
@@ -153,6 +176,7 @@ export async function setup(
       }
       event.decision = { retry: true, delay: Math.max(0, until - Date.now()) }
       hostOwned.add(sessionID)
+      reasons.delete(sessionID)
       wake(sessionID)
       onChange?.(sessionID)
     })
@@ -190,11 +214,14 @@ export async function setup(
     }
   })
 
-  return () => {
-    hostOwned.clear()
-    unloading.abort()
-    unloaded.resolve()
-  }
+  return Object.assign(
+    () => {
+      hostOwned.clear()
+      unloading.abort()
+      unloaded.resolve()
+    },
+    { why: (sessionID: string) => reasons.get(sessionID) ?? null },
+  )
 }
 
 export async function start(ctx: Plugin.Context, registry: Registry, options: Options = {}) {
@@ -211,6 +238,10 @@ export async function start(ctx: Plugin.Context, registry: Registry, options: Op
       return sessionID
         ? project(sessionID, await ctx.storage.get(key(sessionID)), Date.now())
         : null
+    },
+    why: async (input) => {
+      const sessionID = changedSession(input)
+      return sessionID ? dispose.why(sessionID) : null
     },
   })
   state.set('notify', (sessionID) => {
