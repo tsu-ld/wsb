@@ -8,8 +8,8 @@ import { file, serve, sleep, spawn } from 'bun'
 const frame = (delta, reason) =>
   `data: ${JSON.stringify({ id: 'chunk', object: 'chat.completion.chunk', created: 1, model: 'local-test', choices: [{ index: 0, delta, finish_reason: reason }] })}\n\n`
 
-async function eventually(read, description) {
-  const end = Date.now() + 15_000
+async function eventually(read, description, timeout = 15_000) {
+  const end = Date.now() + timeout
   while (Date.now() < end) {
     const value = await read()
     if (value) {
@@ -67,7 +67,7 @@ for (const scenario of selected) {
     return hits
   }
   const manualRequests = []
-  let until = scenario === 'claude-agent' ? Math.ceil((Date.now() + 5000) / 1000) * 1000 : 0
+  let until = scenario === 'claude-agent' ? Math.ceil((Date.now() + 20_000) / 1000) * 1000 : 0
   if (scenario === 'claude-agent') {
     Object.assign(env, {
       OPENCODE_CLAUDE_PATH: resolve(import.meta.dir, '../test/fixtures/fake-claude'),
@@ -287,18 +287,22 @@ for (const scenario of selected) {
       }
     }
     if (scenario !== 'cancel') {
-      const history = await eventually(async () => {
-        const messages = await api(`/api/session/${sessionID}/message?limit=100`)
-        return (
-          messages.some(
-            (m) =>
-              m.type === 'assistant' &&
-              m.model?.id === model.id &&
-              m.model.providerID === model.providerID &&
-              m.content?.some((p) => p.text?.includes('DONE')),
-          ) && messages
-        )
-      }, 'answer in original session and model')
+      const history = await eventually(
+        async () => {
+          const messages = await api(`/api/session/${sessionID}/message?limit=100`)
+          return (
+            messages.some(
+              (m) =>
+                m.type === 'assistant' &&
+                m.model?.id === model.id &&
+                m.model.providerID === model.providerID &&
+                m.content?.some((p) => p.text?.includes('DONE')),
+            ) && messages
+          )
+        },
+        'answer in original session and model',
+        scenario === 'claude-agent' ? Math.max(0, until + 15_000 - Date.now()) : 15_000,
+      )
       assert.equal(history.filter((m) => m.type === 'user').length, scenario === 'manual' ? 2 : 1)
       assert.equal(
         history.filter((m) => m.type === 'synthetic' && m.metadata?.notice !== 'restart').length,
