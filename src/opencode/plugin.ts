@@ -34,6 +34,7 @@ export async function setup(
   const adapted = new Map<string, Source>(Object.entries(registry))
   const locks = new SessionLocks()
   const hostOwned = new Set<string>()
+  const listening = { value: true }
   const sleepers = new Map<string, number>()
   const observations = new Map<string, Route & Readonly<{ reading: Reading }>>()
   const epochs = new Map<string, number>()
@@ -79,6 +80,7 @@ export async function setup(
         break
       }
       reasons.delete(oldest)
+      onChange?.(oldest)
     }
     onChange?.(sessionID)
   }
@@ -115,7 +117,7 @@ export async function setup(
   })
 
   await ctx.session.hook('prompt', async ({ sessionID }) => {
-    if (hostOwned.has(sessionID) && !sleepers.get(sessionID)) {
+    if (listening.value && hostOwned.has(sessionID) && !sleepers.get(sessionID)) {
       observations.delete(sessionID)
       epochs.set(sessionID, epoch(sessionID) + 1)
       return
@@ -125,15 +127,22 @@ export async function setup(
 
   void (async () => {
     for await (const event of ctx.event.subscribe({
-      types: ['session.execution.interrupted'],
+      types: ['session.execution.interrupted', 'session.execution.failed'],
       signal: unloading.signal,
     })) {
-      if (event.data.reason !== 'shutdown') {
+      if (event.type === 'session.execution.failed' || event.data.reason !== 'shutdown') {
         hostOwned.delete(event.data.sessionID)
         await release(event.data.sessionID)
       }
     }
-  })().catch(() => undefined)
+  })()
+    .catch(() => undefined)
+    .finally(() => {
+      if (!unloading.signal.aborted) {
+        listening.value = false
+        hostOwned.clear()
+      }
+    })
 
   await ctx.session.hook('retry', async (event) => {
     const sessionID = event.sessionID

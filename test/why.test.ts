@@ -167,3 +167,14 @@ test('the 201st written session evicts the least recently written', async () => 
   expect((await p.why('s200'))?.reason).toBe('no usable reset')
   await p.dispose()
 })
+
+test('an evicted reason notifies its session', async () => {
+  const p = await load()
+  for (let index = 0; index < 200; index += 1) {
+    await p.call('retry', refusal(LIMIT, `s${index}`))
+  }
+  await p.call('retry', refusal(LIMIT, 's200'))
+  expect(await p.why('s0')).toBeNull()
+  expect(p.emitted.slice(-2)).toEqual(['s0', 's200'])
+  await p.dispose()
+})

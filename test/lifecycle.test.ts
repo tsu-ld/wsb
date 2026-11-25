@@ -11,7 +11,7 @@ import type { Plugin } from '@opencode/plugin'
 type Turn = Readonly<{ sessionID: string; kind?: string }>
 type Hook = (event: Turn) => Promise<void> | void
 type Get = (input: Readonly<{ sessionID: string }>) => Promise<HoldState | null>
-type Interrupt = Readonly<{ data: Readonly<{ sessionID: string; reason: string }> }>
+type Interrupt = Readonly<{ type: string; data: Readonly<{ sessionID: string; reason?: string }> }>
 
 const fits = <T, V>(_value: V): _value is V & T => true
 
@@ -33,6 +33,7 @@ function host(gate?: Promise<void>) {
   const handlers = new Map<'get', Get>()
   const queue = new Array<Interrupt>()
   const waiters = new Array<() => void>()
+  const stream = { ended: false }
   const fake = {
     session: {
       hook: (name: string, callback: Hook) => {
@@ -53,16 +54,19 @@ function host(gate?: Promise<void>) {
       },
     },
     event: {
-      subscribe: () => ({
+      subscribe: ({ types }: Readonly<{ types: ReadonlyArray<string> }>) => ({
         async *[Symbol.asyncIterator]() {
           while (true) {
             while (queue.length === 0) {
+              if (stream.ended) {
+                return
+              }
               await new Promise<void>((resolve) => {
                 waiters.push(resolve)
               })
             }
             const next = queue.shift()
-            if (next) {
+            if (next && types.includes(next.type)) {
               yield next
             }
           }
@@ -94,11 +98,19 @@ function host(gate?: Promise<void>) {
     await hook(event)
   }
   const interrupt = (reason: string) => {
-    queue.push({ data: { sessionID: 's', reason } })
+    queue.push({ type: 'session.execution.interrupted', data: { sessionID: 's', reason } })
+    waiters.shift()?.()
+  }
+  const fail = () => {
+    queue.push({ type: 'session.execution.failed', data: { sessionID: 's' } })
+    waiters.shift()?.()
+  }
+  const end = () => {
+    stream.ended = true
     waiters.shift()?.()
   }
   const get = async () => handlers.get('get')?.({ sessionID: 's' })
-  return { ctx: fake, store, call, reads, emitted, interrupt, get }
+  return { ctx: fake, store, call, reads, emitted, interrupt, fail, end, get }
 }
 
 const watch = (pending: Promise<void>) => {
@@ -301,6 +313,43 @@ test('the kept hold is removed when the turn is dispatched after the deadline', 
   await sleep(100)
   await h.call('context', route())
   expect(h.store.size).toBe(0)
+})
+
+test('a failed execution releases a host-owned hold', async () => {
+  const h = host()
+  const deadline = Date.now() + 100_000
+  const dispose = await start(h.ctx, { test: until(deadline) })
+  const e = refusal()
+  await h.call('retry', e)
+  expect(e.decision.retry).toBe(true)
+  h.fail()
+  await sleep(20)
+  expect(h.store.size).toBe(0)
+  expect(h.emitted).toEqual(['s', 's'])
+  h.store.set('wait/s', { until: deadline, agent: 'build', model: route().model })
+  await h.call('prompt', { sessionID: 's' })
+  expect(h.store.size).toBe(0)
+  await dispose()
+})
+
+test('after the event stream ends a prompt releases a host-owned hold', async () => {
+  const h = host()
+  const dispose = await start(h.ctx, { test: until(Date.now() + 100_000) })
+  const e = refusal()
+  await h.call('retry', e)
+  expect(e.decision.retry).toBe(true)
+  h.end()
+  await sleep(20)
+  expect(h.store.size).toBe(1)
+  await h.call('prompt', { sessionID: 's' })
+  expect(h.store.size).toBe(0)
+  expect(await h.get()).toBeNull()
+  const later = refusal()
+  await h.call('retry', later)
+  expect(later.decision.retry).toBe(true)
+  await h.call('prompt', { sessionID: 's' })
+  expect(h.store.size).toBe(0)
+  await dispose()
 })
 
 test('a prompt releases a wait the plugin itself is sleeping', async () => {
