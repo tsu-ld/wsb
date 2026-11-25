@@ -4,86 +4,140 @@ import { compact, remaining, resumeLabel, rise } from '../format.ts'
 import { Definition, changedSession, isHoldState, isReason } from './rpc.ts'
 import type { HoldState, Reason } from './rpc.ts'
 
-function useNow() {
-  const [now, setNow] = createSignal(Date.now())
-  const timer = setInterval(() => setNow(Date.now()), 1000)
-  onCleanup(() => clearInterval(timer))
-  return now
-}
+type HoldStore = Readonly<{
+  hold: () => HoldState | undefined
+  why: () => Reason | undefined
+  now: () => number
+  refresh: (until: number) => void
+  dispose: () => void
+}>
 
-function useHold(context: Plugin.Context, sessionID: () => string | undefined) {
+type Lease = Readonly<{ store: HoldStore; release: () => void }>
+
+const stores = new Map<string, { store: HoldStore; users: number }>()
+
+function createHoldStore(context: Plugin.Context, sessionID: string): HoldStore {
   const [hold, setHold] = createSignal<HoldState>()
   const [why, setWhy] = createSignal<Reason>()
+  const [now, setNow] = createSignal(Date.now())
+  const timer = setInterval(() => setNow(Date.now()), 1000)
   const rpc = context.client.rpc(Definition)
   let turn = 0
   let asked = 0
   let askedAt = 0
-  const load = (id: string) => {
+  let active = true
+  const load = () => {
     const current = ++turn
-    const directory = context.data.session.get(id)?.location.directory
+    const directory = context.data.session.get(sessionID)?.location.directory
     const options = directory ? { location: { directory } } : undefined
-    void rpc.get({ sessionID: id }, options).then(
+    void rpc.get({ sessionID }, options).then(
       (next) => {
-        if (current === turn && sessionID() === id) {
+        if (active && current === turn) {
           setHold(isHoldState(next) ? next : undefined)
         }
       },
-      () => undefined,
+      () => {
+        if (active && current === turn) {
+          setHold(undefined)
+        }
+      },
     )
-    void rpc.why({ sessionID: id }, options).then(
+    void rpc.why({ sessionID }, options).then(
       (next) => {
-        if (current === turn && sessionID() === id) {
+        if (active && current === turn) {
           setWhy(isReason(next) ? next : undefined)
         }
       },
       () => {
-        if (current === turn && sessionID() === id) {
+        if (active && current === turn) {
           setWhy(undefined)
         }
       },
     )
   }
-  const refresh = (id: string, until: number) => {
+  const refresh = (until: number) => {
     const at = Date.now()
     if (asked === until && at - askedAt < 30_000) {
       return
     }
     asked = until
     askedAt = at
-    load(id)
+    load()
   }
-  onCleanup(
-    rpc.events.on('changed', (event) => {
-      const id = changedSession(event.data)
-      if (id && id === sessionID()) {
-        load(id)
+  const changed = rpc.events.on('changed', (event) => {
+    if (changedSession(event.data) === sessionID) {
+      load()
+    }
+  })
+  const connected = context.data.on('server.connected', load)
+  return {
+    hold,
+    why,
+    now,
+    refresh,
+    dispose: () => {
+      active = false
+      turn += 1
+      clearInterval(timer)
+      changed()
+      connected()
+    },
+  }
+}
+
+function acquireHold(context: Plugin.Context, sessionID: string): Lease {
+  let entry = stores.get(sessionID)
+  if (!entry) {
+    entry = { store: createHoldStore(context, sessionID), users: 0 }
+    stores.set(sessionID, entry)
+  }
+  const acquired = entry
+  acquired.users += 1
+  let released = false
+  return {
+    store: acquired.store,
+    release: () => {
+      if (released) {
+        return
       }
-    }),
-  )
-  onCleanup(
-    context.data.on('server.connected', () => {
-      const id = sessionID()
-      if (id) {
-        load(id)
+      released = true
+      acquired.users -= 1
+      if (acquired.users === 0) {
+        if (stores.get(sessionID) === acquired) {
+          stores.delete(sessionID)
+        }
+        acquired.store.dispose()
       }
-    }),
-  )
+    },
+  }
+}
+
+function useHold(context: Plugin.Context, sessionID: () => string | undefined) {
+  const [current, setCurrent] = createSignal<HoldStore>()
+  let selected: string | undefined
+  let lease: Lease | undefined
   createEffect(
     on(sessionID, (id) => {
-      setHold(undefined)
-      setWhy(undefined)
-      asked = 0
-      if (id) {
-        load(id)
+      if (id === selected) {
+        return
       }
+      selected = id
+      lease?.release()
+      lease = id ? acquireHold(context, id) : undefined
+      setCurrent(lease?.store)
     }),
   )
-  return { hold, why, refresh }
+  onCleanup(() => lease?.release())
+  return {
+    hold: () => current()?.hold(),
+    why: () => current()?.why(),
+    now: () => current()?.now() ?? Date.now(),
+    refresh: (until: number) => current()?.refresh(until),
+  }
 }
 
 function Panel(props: { context: Plugin.Context; sessionID: string }) {
-  const { hold, why, refresh } = useHold(props.context, () => props.sessionID)
-  const now = useNow()
+  const { hold, why, now, refresh } = useHold(props.context, () => props.sessionID)
   const theme = props.context.theme
   const warning = theme.text.feedback.warning.base
   const error = theme.text.feedback.error.base
@@ -91,7 +145,7 @@ function Panel(props: { context: Plugin.Context; sessionID: string }) {
   createEffect(() => {
     const current = hold()
     if (current && now() >= current.until) {
-      refresh(props.sessionID, current.until)
+      refresh(current.until)
     }
   })
 
@@ -130,14 +184,12 @@ function Panel(props: { context: Plugin.Context; sessionID: string }) {
 }
 
 function Status(props: { context: Plugin.Context; sessionID: string | undefined }) {
-  const { hold, refresh } = useHold(props.context, () => props.sessionID)
-  const now = useNow()
+  const { hold, now, refresh } = useHold(props.context, () => props.sessionID)
 
   createEffect(() => {
     const current = hold()
-    const id = props.sessionID
-    if (current && id && now() >= current.until) {
-      refresh(id, current.until)
+    if (current && props.sessionID && now() >= current.until) {
+      refresh(current.until)
     }
   })
 
