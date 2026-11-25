@@ -8,9 +8,9 @@ OpenCode plugin. When your subscription hits its usage limit, it waits for the r
 opencode plugin add github:tsu-ld/wsb
 ```
 
-Works with Claude Max (via `opencode-with-claude`), OpenCode's native Claude Code provider (`claude-agent`), ChatGPT/Codex and OpenCode Go.
+Works with Claude subscriptions (through `opencode-with-claude` or OpenCode's `claude-agent` provider), ChatGPT/Codex and OpenCode Go.
 
-![A 5-hour limit in an OpenCode session: the limit hits at 02:52, wsb reads the reset time, no model call is made for 24 minutes, and at 03:17 OpenCode retries the same turn](web/public/assets/night.gif)
+![An OpenCode session hits its 5-hour limit: wsb reads the reset time from the provider's message, no model call is made for 24 minutes, and at 03:17 OpenCode retries the same turn](web/public/assets/night.gif)
 
 ## Develop
 
