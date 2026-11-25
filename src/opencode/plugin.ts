@@ -14,9 +14,11 @@ import type { Plugin } from '@opencode/plugin'
 
 export const MAX_SLEEP_MS = 2_147_483_647
 
+export const WALL_CLOCK_SLICE_MS = 60_000
+
 export type Registry = Readonly<{ [providerID: string]: Source }>
 
-export type Options = Readonly<{ maxSleepMs?: number }>
+export type Options = Readonly<{ maxSleepMs?: number; wallClockSliceMs?: number }>
 
 export const MAX_REASONS = 200
 
@@ -29,8 +31,9 @@ export async function setup(
   ctx: Plugin.Context,
   registry: Registry,
   onChange?: (sessionID: string) => void,
-  { maxSleepMs = MAX_SLEEP_MS }: Options = {},
+  { maxSleepMs = MAX_SLEEP_MS, wallClockSliceMs = WALL_CLOCK_SLICE_MS }: Options = {},
 ) {
+  const slice = Math.min(maxSleepMs, wallClockSliceMs)
   const adapted = new Map<string, Source>(Object.entries(registry))
   const locks = new SessionLocks()
   const hostOwned = new Set<string>()
@@ -127,12 +130,26 @@ export async function setup(
 
   void (async () => {
     for await (const event of ctx.event.subscribe({
-      types: ['session.execution.interrupted', 'session.execution.failed'],
+      types: [
+        'session.execution.interrupted',
+        'session.execution.failed',
+        'session.execution.succeeded',
+      ],
       signal: unloading.signal,
     })) {
-      if (event.type === 'session.execution.failed' || event.data.reason !== 'shutdown') {
-        hostOwned.delete(event.data.sessionID)
-        await release(event.data.sessionID)
+      const sessionID = event.data.sessionID
+      if (event.type === 'session.execution.succeeded') {
+        hostOwned.delete(sessionID)
+        if (reasons.delete(sessionID)) {
+          onChange?.(sessionID)
+        }
+      } else if (event.type === 'session.execution.failed') {
+        if (hostOwned.delete(sessionID)) {
+          await release(sessionID)
+        }
+      } else if (event.data.reason !== 'shutdown') {
+        hostOwned.delete(sessionID)
+        await release(sessionID)
       }
     }
   })()
@@ -180,7 +197,12 @@ export async function setup(
         agent: event.agent,
         model,
       })
+      if (unloading.signal.aborted) {
+        return
+      }
       if (!current(sessionID, started)) {
+        await ctx.storage.remove(key(sessionID))
+        onChange?.(sessionID)
         return
       }
       event.decision = { retry: true, delay: Math.max(0, until - Date.now()) }
@@ -211,7 +233,7 @@ export async function setup(
         if (decision.kind !== 'sleep') {
           return
         }
-        await nap(Math.min(maxSleepMs, decision.delay), wakeup)
+        await nap(Math.min(slice, decision.delay), wakeup)
       }
     } finally {
       const left = (sleepers.get(sessionID) ?? 1) - 1

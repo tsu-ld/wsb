@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test'
+import { expect, setSystemTime, test } from 'bun:test'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { dispatchDecision } from '../src/opencode/hold.ts'
 import { setup, start } from '../src/opencode/plugin.ts'
@@ -34,6 +34,7 @@ function host(gate?: Promise<void>) {
   const queue = new Array<Interrupt>()
   const waiters = new Array<() => void>()
   const stream = { ended: false }
+  const pause = { gate }
   const fake = {
     session: {
       hook: (name: string, callback: Hook) => {
@@ -46,7 +47,7 @@ function host(gate?: Promise<void>) {
         return store.get(key)
       },
       set: async (key: string, value: Wire) => {
-        await gate
+        await pause.gate
         store.set(key, value)
       },
       remove: async (key: string) => {
@@ -110,7 +111,7 @@ function host(gate?: Promise<void>) {
     waiters.shift()?.()
   }
   const get = async () => handlers.get('get')?.({ sessionID: 's' })
-  return { ctx: fake, store, call, reads, emitted, interrupt, fail, end, get }
+  return { ctx: fake, store, call, reads, emitted, interrupt, fail, end, get, pause }
 }
 
 const watch = (pending: Promise<void>) => {
@@ -208,6 +209,45 @@ test('a hold longer than MAX_SLEEP_MS is slept in slices', async () => {
   expect(h.reads.count).toBeGreaterThanOrEqual(4)
   await h.call('prompt', { sessionID: 's' })
   await sleeper.settled
+})
+
+test('a sleep ends within one slice after the wall clock passes the deadline', async () => {
+  const h = host()
+  const deadline = Date.now() + 100_000
+  await setup(h.ctx, { test: until(deadline) }, undefined, { wallClockSliceMs: 50 })
+  await h.call('retry', refusal())
+  const sleeper = watch(h.call('context', route()))
+  await sleep(10)
+  try {
+    setSystemTime(new Date(deadline + 3_600_000))
+    await sleep(80)
+    expect(sleeper.state.done).toBe(true)
+    expect(h.store.size).toBe(0)
+  } finally {
+    setSystemTime()
+    await h.call('prompt', { sessionID: 's' })
+    await sleeper.settled
+  }
+})
+
+test('a prompt during the write of a second hold leaves no stored hold', async () => {
+  const h = host()
+  const dispose = await start(h.ctx, { test: until(Date.now() + 100_000) })
+  const first = refusal()
+  await h.call('retry', first)
+  expect(first.decision.retry).toBe(true)
+  const gate = Promise.withResolvers<void>()
+  h.pause.gate = gate.promise
+  const second = refusal()
+  const retry = h.call('retry', second)
+  await sleep(10)
+  const prompt = h.call('prompt', { sessionID: 's' })
+  gate.resolve()
+  await Promise.all([retry, prompt])
+  expect(second.decision).toEqual({ retry: false, delay: 0 })
+  expect(h.store.size).toBe(0)
+  expect(h.emitted).toEqual(['s', 's'])
+  await dispose()
 })
 
 test('dispatchDecision passes, sleeps, keeps another route or removes', () => {
