@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test'
 import { createServer } from 'node:http'
 import { once } from 'node:events'
 import plugin from '../src/index.js'
-import { goUsage } from '../src/go-transport.js'
+import { goSource } from '../src/opencode/sources/go.ts'
 
 async function load() {
   const hooks = {}
@@ -116,8 +116,13 @@ test('Go reads all three windows with the exact inference credential, never from
       },
     })
   }
-  expect(await goUsage(make('https://not-opencode.invalid'), read)).toBeUndefined()
-  expect(await goUsage(make('https://opencode.ai'), read)).toBe(deadline)
+  expect(
+    (await goSource({ fetch: read }).atResponse(make('https://not-opencode.invalid'), Date.now()))
+      .kind,
+  ).not.toBe('until')
+  expect(
+    await goSource({ fetch: read }).atResponse(make('https://opencode.ai'), Date.now()),
+  ).toEqual({ kind: 'until', until: deadline })
   expect(calls.length).toBe(1)
   expect(calls[0].url).toBe('https://opencode.ai/zen/go/v1/usage')
   expect(calls[0].init).toMatchObject({

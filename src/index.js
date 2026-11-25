@@ -1,4 +1,4 @@
-import { providers } from './providers.js'
+import { asProviders, sources } from './opencode/sources/index.ts'
 import { Definition } from './rpc.ts'
 import { holdFor, setup } from './runner.ts'
 
@@ -6,7 +6,11 @@ export default {
   id: 'wsb',
   setup: async (ctx) => {
     const state = { notify: () => undefined }
-    const dispose = await setup(ctx, providers(), (sessionID) => state.notify(sessionID))
+    const dispose = await setup(
+      ctx,
+      asProviders(sources({ connection: () => ctx.integration?.connection })),
+      (sessionID) => state.notify(sessionID),
+    )
     const registration = await ctx.rpc.register(Definition, {
       get: ({ sessionID }) => holdFor(ctx, sessionID),
     })
