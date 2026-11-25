@@ -3,6 +3,6 @@
   "compatibility_date": "2026-11-01",
   "workers_dev": false,
   "preview_urls": false,
-  "assets": { "directory": "./public" },
+  "assets": { "directory": "./public", "not_found_handling": "404-page" },
   "routes": [{ "pattern": "wsb.tsu.ar", "custom_domain": true }],
 }
