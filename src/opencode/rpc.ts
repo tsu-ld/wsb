@@ -1,9 +1,11 @@
 import { Rpc } from '@opencode/plugin/rpc'
-import type { Hold } from './hold.ts'
+import type { Hold } from '../format.ts'
 
 export interface HoldState extends Hold {
   readonly sessionID: string
 }
+
+export type Reason = Readonly<{ at: number; reason: string }>
 
 const hold = {
   type: 'object',
@@ -27,17 +29,33 @@ const state = {
   additionalProperties: false,
 } as const
 
+const reason = {
+  type: 'object',
+  properties: {
+    at: { type: 'number' },
+    reason: { type: 'string' },
+  },
+  required: ['at', 'reason'],
+  additionalProperties: false,
+} as const
+
+const session = {
+  type: 'object',
+  properties: { sessionID: { type: 'string' } },
+  required: ['sessionID'],
+  additionalProperties: false,
+} as const
+
 export const Definition = Rpc.define({
   id: 'wsb.hold',
   methods: {
     get: {
-      input: {
-        type: 'object',
-        properties: { sessionID: { type: 'string' } },
-        required: ['sessionID'],
-        additionalProperties: false,
-      },
+      input: session,
       output: { anyOf: [{ type: 'null' }, state] },
+    },
+    why: {
+      input: session,
+      output: { anyOf: [{ type: 'null' }, reason] },
     },
   },
   events: {
@@ -60,6 +78,13 @@ export function changedSession(value: unknown): string | undefined {
     return undefined
   }
   return typeof value.sessionID === 'string' ? value.sessionID : undefined
+}
+
+export function isReason(value: unknown): value is Reason {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+  return 'at' in value && number(value.at) && 'reason' in value && typeof value.reason === 'string'
 }
 
 export function isHoldState(value: unknown): value is HoldState {

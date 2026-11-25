@@ -1,7 +1,8 @@
 import { expect, test } from 'bun:test'
-import { clock, compact, countdown, remaining, resumeLabel, rise } from '../src/hold.ts'
+import { clock, compact, countdown, remaining, resumeLabel, rise } from '../src/format.ts'
 
-const at = (day, hour, minute) => new Date(2026, 10, day, hour, minute, 0, 0).getTime()
+const at = (day: number, hour: number, minute: number) =>
+  new Date(2026, 10, day, hour, minute, 0, 0).getTime()
 
 test('remaining counts up to the deadline in whole seconds and never goes negative', () => {
   expect(remaining(10_000, 0)).toBe(10)

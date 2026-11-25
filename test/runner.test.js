@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 import { setTimeout as sleep } from 'node:timers/promises'
-import { setup } from '../src/runner.ts'
+import { setup } from '../src/opencode/plugin.ts'
 
 const event = () => ({
   sessionID: 's',
@@ -12,7 +12,7 @@ const event = () => ({
 function fixture() {
   const store = new Map()
   const until = Date.now() + 100_000
-  const boot = async (read = async () => until, extra = {}) => {
+  const boot = async (read = async () => ({ kind: 'until', until }), extra = {}) => {
     const hooks = {}
     const cleanup = await setup(
       {
@@ -28,7 +28,7 @@ function fixture() {
         },
         event: { subscribe: () => (async function* () {})() },
       },
-      { test: { resolve: read, ...extra } },
+      { test: { atError: read, ...extra } },
     )
     return { hooks, cleanup }
   }
@@ -70,7 +70,7 @@ test('a manual prompt releases a recovered wait without sending a message', asyn
 test('different routing does not inherit a wait; absent wake-up data never schedules a retry', async () => {
   const { boot } = fixture()
   await (await boot()).hooks.retry(event())
-  const { hooks } = await boot(async () => undefined)
+  const { hooks } = await boot(async () => ({ kind: 'unknown', reason: 'absent' }))
   const e = event()
   e.model.variant = 'low'
   await hooks.context(e)
@@ -90,22 +90,34 @@ test('an unavailable usage reader does not break unrelated native errors', async
   expect(e.decision).toEqual({ retry: true, delay: 100 })
 })
 
-test('unavailable reset never vetoes existing host retry or accepts an implausible year', async () => {
-  for (const reset of [undefined, Date.now() * 1000]) {
-    const { boot, store } = fixture()
-    const { hooks } = await boot(() => reset, { confirmed: () => true })
-    const e = event()
-    e.decision = { retry: true, delay: 123 }
-    await hooks.retry(e)
-    expect(e.decision).toEqual({ retry: true, delay: 123 })
-    expect(store.size).toBe(0)
-  }
+async function keepsHostRetry(read) {
+  const { boot, store } = fixture()
+  const { hooks } = await boot(read, { confirmed: () => true })
+  const e = event()
+  e.decision = { retry: true, delay: 123 }
+  await hooks.retry(e)
+  expect(e.decision).toEqual({ retry: true, delay: 123 })
+  expect(store.size).toBe(0)
+}
+
+test('an implausible year never vetoes existing host retry', async () => {
+  await keepsHostRetry(() => ({ kind: 'until', until: Date.now() * 1000 }))
+})
+
+test('an unknown reset never vetoes existing host retry', async () => {
+  await keepsHostRetry(() => ({ kind: 'unknown', reason: 'x' }))
+})
+
+test('a reader that throws never vetoes existing host retry', async () => {
+  await keepsHostRetry(() => {
+    throw new Error('unavailable')
+  })
 })
 
 test('a second deadline cannot be erased by an older recovery; manual input releases both', async () => {
   const { boot, store } = fixture()
   let deadline = Date.now() + 75
-  const { hooks, cleanup } = await boot(() => deadline)
+  const { hooks, cleanup } = await boot(() => ({ kind: 'until', until: deadline }))
   try {
     await hooks.retry(event())
     let released = false
@@ -172,7 +184,7 @@ async function interruptedSetup() {
       },
       event: { subscribe: () => events.subscribe() },
     },
-    { test: { resolve: async () => until } },
+    { test: { atError: async () => ({ kind: 'until', until }) } },
   )
   return { store, hooks, events, cleanup }
 }

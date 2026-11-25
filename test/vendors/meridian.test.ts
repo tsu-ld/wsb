@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'bun:test'
-import { claudeReset } from '../src/claude.js'
+import { read } from '../../src/vendors/meridian.ts'
+import type { Reading } from '../../src/deadline.ts'
+import type { Fetch, MeridianRefusal } from '../../src/vendors/meridian.ts'
 
 const NOW = 1_795_000_000_000
 const HOUR = 3_600_000
 const DAY = 24 * HOUR
 
-const bucket = (type, status, resetsAt, utilization = 1) => ({
+const bucket = (type: string, status: string, resetsAt: unknown, utilization = 1) => ({
   type,
   status,
   utilization,
@@ -18,7 +20,15 @@ const bucket = (type, status, resetsAt, utilization = 1) => ({
   observedAt: NOW - 1000,
 })
 
-const seat = (id, extra = {}) => ({
+type SeatPatch = Readonly<{
+  isActive?: boolean
+  type?: string | undefined
+  stale?: boolean
+  error?: string
+  fetchedAt?: number
+}>
+
+const seat = (id: string, extra: SeatPatch = {}) => ({
   id,
   isActive: true,
   type: 'claude-max',
@@ -33,9 +43,13 @@ const seat = (id, extra = {}) => ({
   ...extra,
 })
 
-const all = (profiles) => ({ profiles, activeProfile: profiles[0]?.id ?? null, asOf: NOW })
+const all = (profiles: ReadonlyArray<{ id: string }>) => ({
+  profiles,
+  activeProfile: profiles[0]?.id ?? null,
+  asOf: NOW,
+})
 
-const quota = (profile, buckets, fetchedAt = NOW - 5000) => ({
+const quota = (profile: string, buckets: ReadonlyArray<object>, fetchedAt = NOW - 5000) => ({
   profile,
   buckets,
   extraUsage: null,
@@ -43,15 +57,7 @@ const quota = (profile, buckets, fetchedAt = NOW - 5000) => ({
   asOf: NOW,
 })
 
-const ctx = (extra = {}) => ({
-  providerID: 'anthropic',
-  modelID: 'claude-sonnet-4-5',
-  meridianBaseURL: 'http://127.0.0.1:3456',
-  ...extra,
-})
-
-const limited = (extra = {}) => ({
-  status: 429,
+const limited = (extra: Readonly<{ retry_after?: number }> = {}) => ({
   type: 'error',
   retry_after: 60,
   error: {
@@ -61,10 +67,12 @@ const limited = (extra = {}) => ({
   ...extra,
 })
 
-const source = (routes) => {
-  const calls = []
-  const requests = []
-  const fetch = async (input, init) => {
+type Route = (url: URL, init: RequestInit) => Response
+
+const source = (routes: Readonly<{ [path: string]: Route }>) => {
+  const calls: Array<string> = []
+  const requests: Array<{ url: URL; init: RequestInit }> = []
+  const fetch: Fetch = async (input, init) => {
     const url = new URL(String(input))
     calls.push(url.pathname + url.search)
     requests.push({ url, init })
@@ -74,12 +82,25 @@ const source = (routes) => {
   return { calls, requests, fetch }
 }
 
-const healthy = (id, buckets) => ({
+const healthy = (id: string, buckets: ReadonlyArray<object>) => ({
   '/v1/usage/quota/all': () => Response.json(all([seat(id)])),
   '/v1/usage/quota': () => Response.json(quota(id, buckets)),
 })
 
-describe('claudeReset', () => {
+const refusal = (fetch: Fetch, extra: Partial<MeridianRefusal> = {}): MeridianRefusal => ({
+  origin: 'http://127.0.0.1:3456/v1/messages',
+  key: null,
+  modelID: 'claude-sonnet-4-5',
+  status: 429,
+  body: limited(),
+  fetch,
+  now: NOW,
+  ...extra,
+})
+
+const until = (at: number): Reading => ({ kind: 'until', until: at })
+
+describe('meridian.read', () => {
   it('resumes at the latest rejected subscription window', async () => {
     const { calls, fetch } = source(
       healthy('work', [
@@ -88,14 +109,14 @@ describe('claudeReset', () => {
         bucket('seven_day_sonnet', 'allowed', NOW + DAY, 0.4),
       ]),
     )
-    expect(await claudeReset(ctx({ fetch }), limited(), NOW)).toBe(NOW + 3 * DAY)
+    expect(await read(refusal(fetch))).toEqual(until(NOW + 3 * DAY))
     expect(calls).toEqual(['/v1/usage/quota/all', '/v1/usage/quota?profile=work'])
   })
 
   it('takes the reset from the quota, not from Retry-After', async () => {
     const { fetch } = source(healthy('work', [bucket('five_hour', 'rejected', NOW + 2 * HOUR)]))
-    expect(await claudeReset(ctx({ fetch }), limited({ retry_after: 60 }), NOW)).toBe(
-      NOW + 2 * HOUR,
+    expect(await read(refusal(fetch, { body: limited({ retry_after: 60 }) }))).toEqual(
+      until(NOW + 2 * HOUR),
     )
   })
 
@@ -103,13 +124,13 @@ describe('claudeReset', () => {
     const { fetch } = source(
       healthy('work', [bucket('five_hour', 'allowed_warning', NOW + HOUR, 0.91)]),
     )
-    expect(await claudeReset(ctx({ fetch }), limited(), NOW)).toBeUndefined()
+    expect(await read(refusal(fetch))).toEqual({ kind: 'unknown', reason: 'no rejected window' })
   })
 
   it('a Fable window does not alarm another model and an unknown window is not guessed', async () => {
     for (const modelID of ['claude-sonnet-4-5', 'unrelated']) {
       const { fetch } = source(healthy('work', [bucket('seven_day_fable', 'rejected', NOW + HOUR)]))
-      expect(await claudeReset(ctx({ fetch, modelID }), limited(), NOW)).toBeUndefined()
+      expect((await read(refusal(fetch, { modelID }))).kind).toBe('unknown')
     }
   })
 
@@ -121,7 +142,7 @@ describe('claudeReset', () => {
         bucket('seven_day_opus', 'rejected', NOW + 2 * DAY),
       ]),
     )
-    expect(await claudeReset(ctx({ fetch }), limited(), NOW)).toBeUndefined()
+    expect((await read(refusal(fetch))).kind).toBe('unknown')
   })
 
   it('model-specific limits apply to their own model family', async () => {
@@ -133,14 +154,15 @@ describe('claudeReset', () => {
           bucket('seven_day_opus', 'rejected', NOW + 2 * DAY),
         ]),
       )
-      expect(await claudeReset(ctx({ fetch, modelID }), limited(), NOW)).toBe(
-        modelID.includes('opus') ? NOW + 2 * DAY : undefined,
-      )
+      const reading = await read(refusal(fetch, { modelID }))
+      if (modelID.includes('opus')) {
+        expect(reading).toEqual(until(NOW + 2 * DAY))
+      } else {
+        expect(reading.kind).toBe('unknown')
+      }
     }
     const { fetch } = source(healthy('work', [bucket('seven_day_fable', 'rejected', NOW + HOUR)]))
-    expect(await claudeReset(ctx({ fetch, modelID: 'claude-fable-5-2' }), limited(), NOW)).toBe(
-      NOW + HOUR,
-    )
+    expect(await read(refusal(fetch, { modelID: 'claude-fable-5-2' }))).toEqual(until(NOW + HOUR))
   })
 
   it('an exhausted sonnet window does not alarm an opus turn', async () => {
@@ -150,14 +172,12 @@ describe('claudeReset', () => {
         bucket('seven_day_sonnet', 'rejected', NOW + DAY),
       ]),
     )
-    expect(
-      await claudeReset(ctx({ fetch, modelID: 'claude-opus-5-5' }), limited(), NOW),
-    ).toBeUndefined()
+    expect((await read(refusal(fetch, { modelID: 'claude-opus-5-5' }))).kind).toBe('unknown')
   })
 
   it('a rejected overage window is not a subscription reset', async () => {
     const { fetch } = source(healthy('work', [bucket('overage', 'rejected', NOW + HOUR)]))
-    expect(await claudeReset(ctx({ fetch }), limited(), NOW)).toBeUndefined()
+    expect((await read(refusal(fetch))).kind).toBe('unknown')
   })
 
   it('two Claude seats without an explicit profile are ambiguous', async () => {
@@ -166,39 +186,18 @@ describe('claudeReset', () => {
       '/v1/usage/quota': () =>
         Response.json(quota('work', [bucket('five_hour', 'rejected', NOW + HOUR)])),
     })
-    expect(await claudeReset(ctx({ fetch }), limited(), NOW)).toBeUndefined()
+    expect(await read(refusal(fetch))).toEqual({
+      kind: 'unknown',
+      reason: 'several subscription seats',
+    })
     expect(calls).toEqual(['/v1/usage/quota/all'])
-  })
-
-  it('an explicit profile reads its own windows', async () => {
-    const { calls, fetch } = source({
-      '/v1/usage/quota/all': () => Response.json(all([seat('work'), seat('personal')])),
-      '/v1/usage/quota': (url) =>
-        Response.json(
-          url.searchParams.get('profile') === 'personal'
-            ? quota('personal', [bucket('five_hour', 'rejected', NOW + HOUR)])
-            : quota('work', [bucket('five_hour', 'rejected', NOW + 5 * DAY)]),
-        ),
-    })
-    expect(await claudeReset(ctx({ fetch, profile: 'personal' }), limited(), NOW)).toBe(NOW + HOUR)
-    expect(calls).toEqual(['/v1/usage/quota/all', '/v1/usage/quota?profile=personal'])
-  })
-
-  it('a pinned profile need not be the active seat', async () => {
-    const { fetch } = source({
-      '/v1/usage/quota/all': () =>
-        Response.json(all([seat('work'), seat('personal', { isActive: false })])),
-      '/v1/usage/quota': () =>
-        Response.json(quota('personal', [bucket('five_hour', 'rejected', NOW + HOUR)])),
-    })
-    expect(await claudeReset(ctx({ fetch, profile: 'personal' }), limited(), NOW)).toBe(NOW + HOUR)
   })
 
   it('an inactive seat is not attributed by inference', async () => {
     const { calls, fetch } = source({
       '/v1/usage/quota/all': () => Response.json(all([seat('work', { isActive: false })])),
     })
-    expect(await claudeReset(ctx({ fetch }), limited(), NOW)).toBeUndefined()
+    expect(await read(refusal(fetch))).toEqual({ kind: 'unknown', reason: 'seat not active' })
     expect(calls).toEqual(['/v1/usage/quota/all'])
   })
 
@@ -208,7 +207,7 @@ describe('claudeReset', () => {
       '/v1/usage/quota': () =>
         Response.json(quota('default', [bucket('five_hour', 'rejected', NOW + HOUR)])),
     })
-    expect(await claudeReset(ctx({ fetch }), limited(), NOW)).toBe(NOW + HOUR)
+    expect(await read(refusal(fetch))).toEqual(until(NOW + HOUR))
     expect(calls).toEqual(['/v1/usage/quota/all', '/v1/usage/quota?profile=default'])
   })
 
@@ -216,7 +215,7 @@ describe('claudeReset', () => {
     const { calls, fetch } = source({
       '/v1/usage/quota/all': () => Response.json(all([seat('api', { type: 'api' })])),
     })
-    expect(await claudeReset(ctx({ fetch }), limited(), NOW)).toBeUndefined()
+    expect(await read(refusal(fetch))).toEqual({ kind: 'unknown', reason: 'no subscription seat' })
     expect(calls).toEqual(['/v1/usage/quota/all'])
   })
 
@@ -229,7 +228,7 @@ describe('claudeReset', () => {
       const { calls, fetch } = source({
         '/v1/usage/quota/all': () => Response.json(all([seat('work', extra)])),
       })
-      expect(await claudeReset(ctx({ fetch }), limited(), NOW)).toBeUndefined()
+      expect(await read(refusal(fetch))).toEqual({ kind: 'unknown', reason: 'seat data stale' })
       expect(calls).toEqual(['/v1/usage/quota/all'])
     }
   })
@@ -242,7 +241,7 @@ describe('claudeReset', () => {
           quota('work', [bucket('five_hour', 'rejected', NOW + HOUR)], NOW - 16 * 60 * 1000),
         ),
     })
-    expect(await claudeReset(ctx({ fetch }), limited(), NOW)).toBeUndefined()
+    expect(await read(refusal(fetch))).toEqual({ kind: 'unknown', reason: 'quota snapshot stale' })
   })
 
   it('a missing OAuth snapshot in the quota route is not a reset', async () => {
@@ -251,7 +250,10 @@ describe('claudeReset', () => {
       '/v1/usage/quota': () =>
         Response.json({ ...quota('work', []), sources: { oauth: null, sdk: { entryCount: 1 } } }),
     })
-    expect(await claudeReset(ctx({ fetch }), limited(), NOW)).toBeUndefined()
+    expect(await read(refusal(fetch))).toEqual({
+      kind: 'unknown',
+      reason: 'quota without oauth snapshot',
+    })
   })
 
   it('a quota response for another profile is ignored', async () => {
@@ -260,7 +262,10 @@ describe('claudeReset', () => {
       '/v1/usage/quota': () =>
         Response.json(quota('personal', [bucket('five_hour', 'rejected', NOW + HOUR)])),
     })
-    expect(await claudeReset(ctx({ fetch }), limited(), NOW)).toBeUndefined()
+    expect(await read(refusal(fetch))).toEqual({
+      kind: 'unknown',
+      reason: 'quota for another seat',
+    })
   })
 
   it('a reset must be epoch milliseconds in the future', async () => {
@@ -272,13 +277,13 @@ describe('claudeReset', () => {
       NOW + 30 * DAY,
     ]) {
       const { fetch } = source(healthy('work', [bucket('five_hour', 'rejected', resetsAt)]))
-      expect(await claudeReset(ctx({ fetch }), limited(), NOW)).toBeUndefined()
+      expect((await read(refusal(fetch))).kind).toBe('unknown')
     }
   })
 
   it('a rejected window without a reset is not a quota alarm', async () => {
     const { fetch } = source(healthy('work', [bucket('five_hour', 'rejected', null)]))
-    expect(await claudeReset(ctx({ fetch }), limited(), NOW)).toBeUndefined()
+    expect(await read(refusal(fetch))).toEqual({ kind: 'unknown', reason: 'no usable reset' })
   })
 
   it('non-quota failures never read Meridian', async () => {
@@ -296,53 +301,57 @@ describe('claudeReset', () => {
       { status: 200 },
       {},
     ]
-    for (const event of events) {
-      expect(await claudeReset(ctx({ fetch }), event, NOW)).toBeUndefined()
+    for (const { status, ...body } of events) {
+      expect((await read(refusal(fetch, { status, body }))).kind).toBe('other')
     }
     expect(calls).toEqual([])
   })
 
-  it('another or missing provider is never read', async () => {
+  it('a wrapped rate limit error without a status is not a Claude subscription limit', async () => {
     const { calls, fetch } = source(healthy('work', [bucket('five_hour', 'rejected', NOW + HOUR)]))
-    expect(await claudeReset(ctx({ fetch, providerID: 'openai' }), limited(), NOW)).toBeUndefined()
-    expect(await claudeReset(ctx({ fetch, providerID: undefined }), limited(), NOW)).toBeUndefined()
+    const body = { error: { type: 'rate_limit_error', message: 'rate limit' } }
+    expect(await read(refusal(fetch, { status: undefined, body }))).toEqual({
+      kind: 'other',
+      reason: 'not a Claude subscription limit',
+    })
     expect(calls).toEqual([])
   })
 
-  it('a wrapped rate limit error without a status still reads quota', async () => {
+  it('a wrapped subscription limit without a status still reads quota', async () => {
     const { fetch } = source(healthy('work', [bucket('five_hour', 'rejected', NOW + HOUR)]))
-    const event = { error: { type: 'rate_limit_error', message: 'rate limit' } }
-    expect(await claudeReset(ctx({ fetch }), event, NOW)).toBe(NOW + HOUR)
+    const body = {
+      error: { type: 'rate_limit_error', message: 'Claude Max rate limit reached.' },
+    }
+    expect(await read(refusal(fetch, { status: undefined, body }))).toEqual({
+      kind: 'until',
+      until: NOW + HOUR,
+    })
   })
 
   it('a non-loopback address is never contacted', async () => {
     const { calls, fetch } = source(healthy('work', [bucket('five_hour', 'rejected', NOW + HOUR)]))
-    for (const meridianBaseURL of [
+    for (const origin of [
       'https://meridian.example.com',
       'http://127.0.0.1.example.com:3456',
       'http://10.0.0.2:3456',
       'http://user:pass@127.0.0.1:3456',
     ]) {
-      expect(await claudeReset(ctx({ fetch, meridianBaseURL }), limited(), NOW)).toBeUndefined()
+      expect((await read(refusal(fetch, { origin }))).kind).toBe('other')
     }
     expect(calls).toEqual([])
   })
 
   it('a loopback IPv6 origin is accepted', async () => {
     const { fetch } = source(healthy('work', [bucket('five_hour', 'rejected', NOW + HOUR)]))
-    expect(
-      await claudeReset(ctx({ fetch, meridianBaseURL: 'http://[::1]:3456' }), limited(), NOW),
-    ).toBe(NOW + HOUR)
+    expect(await read(refusal(fetch, { origin: 'http://[::1]:3456' }))).toEqual(until(NOW + HOUR))
   })
 
   it('sends the configured proxy key only to the loopback listener', async () => {
     const { requests, fetch } = source(
       healthy('work', [bucket('five_hour', 'rejected', NOW + HOUR)]),
     )
-    expect(await claudeReset(ctx({ fetch, meridianKey: 'local-key' }), limited(), NOW)).toBe(
-      NOW + HOUR,
-    )
-    expect(requests.map(({ init }) => init.headers['x-api-key'])).toEqual([
+    expect(await read(refusal(fetch, { key: 'local-key' }))).toEqual(until(NOW + HOUR))
+    expect(requests.map(({ init }) => new Headers(init.headers).get('x-api-key'))).toEqual([
       'local-key',
       'local-key',
     ])
@@ -350,21 +359,39 @@ describe('claudeReset', () => {
 
   it('fails closed on a missing route, bad JSON or an unreachable listener', async () => {
     const missing = source({})
-    expect(await claudeReset(ctx({ fetch: missing.fetch }), limited(), NOW)).toBeUndefined()
+    expect((await read(refusal(missing.fetch))).kind).toBe('unknown')
 
     const garbage = source({ '/v1/usage/quota/all': () => new Response('not json') })
-    expect(await claudeReset(ctx({ fetch: garbage.fetch }), limited(), NOW)).toBeUndefined()
+    expect((await read(refusal(garbage.fetch))).kind).toBe('unknown')
 
     const broken = source({
       '/v1/usage/quota/all': () => {
         throw new Error('connection refused')
       },
     })
-    expect(await claudeReset(ctx({ fetch: broken.fetch }), limited(), NOW)).toBeUndefined()
+    expect((await read(refusal(broken.fetch))).kind).toBe('unknown')
 
     const unauthorized = source({
       '/v1/usage/quota/all': () => new Response('no', { status: 401 }),
     })
-    expect(await claudeReset(ctx({ fetch: unauthorized.fetch }), limited(), NOW)).toBeUndefined()
+    expect((await read(refusal(unauthorized.fetch))).kind).toBe('unknown')
+  })
+
+  it('a nested 403 inside a 429 vetoes before any quota request', async () => {
+    const { calls, fetch } = source(healthy('work', [bucket('five_hour', 'rejected', NOW + HOUR)]))
+    const body = {
+      error: { type: 'rate_limit_error', message: 'Claude Max rate limit reached', status: 403 },
+    }
+    expect((await read(refusal(fetch, { status: 429, body }))).kind).toBe('other')
+    expect(calls).toEqual([])
+  })
+
+  it('a message that names billing is not a quota refusal', async () => {
+    const { calls, fetch } = source(healthy('work', [bucket('five_hour', 'rejected', NOW + HOUR)]))
+    const body = {
+      error: { type: 'rate_limit_error', message: 'Claude Max rate limit reached: billing hold' },
+    }
+    expect((await read(refusal(fetch, { body }))).kind).toBe('other')
+    expect(calls).toEqual([])
   })
 })

@@ -15,7 +15,7 @@ Works with Claude subscriptions (through `opencode-with-claude` or OpenCode's `c
 ## Develop
 
 ```sh
-bun install && bun scripts/build.js && bun check && bun test && bun scripts/e2e.js
+bun install && bun run check && bun scripts/e2e.js
 ```
 
-`src/tui.tsx` compiles to `dist/tui.js`, which is committed because git installs load it. Run the build after changing the TUI part.
+`src/opencode/tui.tsx` compiles to `dist/tui.js`, which is committed because git installs load it. `bun run check` fails when the build is stale.
