@@ -1,21 +1,42 @@
 import { setTimeout as sleep } from 'node:timers/promises'
-import { sameRoute, retryDecision } from './policy.ts'
+import { plausible } from './deadline.ts'
 import { SessionLocks, SessionSignals } from './coordination.ts'
-import type { Wait } from './policy.ts'
+import type { Reading } from './deadline.ts'
 import type { HoldState } from './rpc.ts'
 import type { Plugin } from '@opencode/plugin'
 import type { SessionHttpResponse, SessionRetry } from '@opencode/plugin/promise/session'
 
 const key = (id: string) => `wait/${id}`
 
+export type Route = Readonly<{
+  agent: string
+  model: Readonly<{ providerID: string; id: string; variant?: string | undefined }>
+}>
+
+export type Wait = Route & Readonly<{ until: number }>
+
+export function sameRoute(left: Route, right: Route): boolean {
+  return (
+    left.agent === right.agent &&
+    left.model.providerID === right.model.providerID &&
+    left.model.id === right.model.id &&
+    left.model.variant === right.model.variant
+  )
+}
+
+const threw = (error: unknown): Reading => ({
+  kind: 'other',
+  reason: `threw ${error instanceof Error ? error.name : typeof error}`,
+})
+
 export interface ProviderAdapter {
-  observe?: (event: SessionHttpResponse) => Promise<number | undefined>
+  observe?: (event: SessionHttpResponse) => Promise<Reading>
   resolve(
     ctx: Plugin.Context,
     event: SessionRetry,
     now: number,
-    observed?: number,
-  ): Promise<number | undefined> | number | undefined
+    observed?: Reading,
+  ): Reading | Promise<Reading>
 }
 
 interface Stored extends Wait {
@@ -49,7 +70,7 @@ function isWait(value: unknown): value is Stored {
 
 export async function holdFor(ctx: Plugin.Context, sessionID: string): Promise<HoldState | null> {
   const value = await ctx.storage.get(key(sessionID))
-  if (!value || !isWait(value) || !retryDecision(value.until, Date.now())) {
+  if (!value || !isWait(value) || !plausible(value.until, Date.now())) {
     return null
   }
   return {
@@ -69,7 +90,7 @@ export async function setup(
   const pending = new SessionSignals()
   const changed = new SessionSignals()
   const locks = new SessionLocks()
-  const observations = new Map<string, Wait>()
+  const observations = new Map<string, Route & Readonly<{ reading: Reading }>>()
   const unloading = new AbortController()
 
   await ctx.session.hook('http.response', async (event) => {
@@ -83,16 +104,13 @@ export async function setup(
       return
     }
     await pending.run(event.sessionID, async (signal) => {
-      const until = await observe(event).catch(() => undefined)
-      if (
-        signal.aborted ||
-        unloading.signal.aborted ||
-        until === undefined ||
-        !retryDecision(until, Date.now())
-      ) {
+      const reading = await Promise.resolve()
+        .then(() => observe(event))
+        .catch(threw)
+      if (signal.aborted || unloading.signal.aborted) {
         return
       }
-      observations.set(event.sessionID, { model: event.model, agent: event.agent, until })
+      observations.set(event.sessionID, { model: event.model, agent: event.agent, reading })
     })
   })
 
@@ -130,16 +148,17 @@ export async function setup(
     const observed = observations.get(event.sessionID)
     observations.delete(event.sessionID)
     await pending.run(event.sessionID, async (signal) => {
-      const matching = observed && sameRoute(observed, event)
-      const until = await Promise.resolve()
-        .then(() => provider.resolve(ctx, event, Date.now(), matching ? observed.until : undefined))
-        .catch(() => undefined)
+      const earlier = observed && sameRoute(observed, event) ? observed.reading : undefined
+      const reading = await Promise.resolve()
+        .then(() => provider.resolve(ctx, event, Date.now(), earlier))
+        .catch(threw)
       if (signal.aborted || unloading.signal.aborted) {
         return
       }
-      if (until === undefined || !retryDecision(until, Date.now())) {
+      if (reading.kind !== 'until' || !plausible(reading.until, Date.now())) {
         return
       }
+      const until = reading.until
       const base = {
         providerID: event.model.providerID,
         id: event.model.id,
@@ -172,10 +191,11 @@ export async function setup(
           if (!value) {
             return { delay: undefined, cleared: false }
           }
-          if (isWait(value)) {
-            const wait = retryDecision(value.until, Date.now())
-            if (wait) {
-              return { delay: sameRoute(value, event) ? wait.delay : undefined, cleared: false }
+          const now = Date.now()
+          if (isWait(value) && plausible(value.until, now)) {
+            return {
+              delay: sameRoute(value, event) ? value.until - now : undefined,
+              cleared: false,
             }
           }
           await ctx.storage.remove(key(event.sessionID))

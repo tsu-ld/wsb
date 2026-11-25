@@ -1,11 +1,30 @@
 import { claudeAgentReset } from './claude-agent.js'
 import { claudeReset } from './claude.js'
 import { codexReset, observeCodex } from './codex.js'
+import { plausible } from './deadline.ts'
 import { goAdapter } from './go-transport.js'
+
+const fromLegacy = (value) =>
+  typeof value === 'number'
+    ? { kind: 'until', until: value }
+    : { kind: 'unknown', reason: 'legacy' }
+
+const legacy = ({ observe, resolve }) => ({
+  observe: observe && (async (event) => fromLegacy(await observe(event))),
+  resolve: async (ctx, event, now, earlier) =>
+    fromLegacy(
+      await resolve(
+        ctx,
+        event,
+        now,
+        earlier?.kind === 'until' && plausible(earlier.until, now) ? earlier.until : undefined,
+      ),
+    ),
+})
 
 export function providers() {
   return {
-    anthropic: {
+    anthropic: legacy({
       async observe({ request, response, model, kind, sessionID }) {
         if (
           kind !== 'primary' ||
@@ -37,9 +56,9 @@ export function providers() {
       },
       resolve: (_ctx, event, _now, observed) =>
         event.error?.status === 429 ? observed : undefined,
-    },
-    'claude-agent': { resolve: (_ctx, event, now) => claudeAgentReset(event, now) },
-    openai: { resolve: codexReset, observe: observeCodex },
-    'opencode-go': goAdapter(),
+    }),
+    'claude-agent': legacy({ resolve: (_ctx, event, now) => claudeAgentReset(event, now) }),
+    openai: legacy({ resolve: codexReset, observe: observeCodex }),
+    'opencode-go': legacy(goAdapter()),
   }
 }

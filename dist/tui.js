@@ -9,7 +9,7 @@ import { createElement as _$createElement } from '@opentui/solid'
 import { createComponent as _$createComponent } from '@opentui/solid'
 import { createEffect, createSignal, on, onCleanup, Show } from 'solid-js'
 
-// src/hold.ts
+// src/format.ts
 var pad = (value) => String(value).padStart(2, '0')
 function remaining(until, now) {
   return Math.max(0, Math.ceil((until - now) / 1000))
