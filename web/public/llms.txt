@@ -1,43 +1,56 @@
 # wsb
 
-> wsb is a free, open-source (MIT) plugin for OpenCode. When an OpenCode session hits a subscription usage limit (Claude Max, ChatGPT/Codex or OpenCode Go), wsb waits until the limit resets and OpenCode retries the same turn with the same model. Nobody has to type "continue".
+> wsb is a free, open-source (MIT) plugin for OpenCode. When an OpenCode session hits a subscription usage limit (Claude Max, Claude Code through OpenCode's claude-agent provider, ChatGPT/Codex or OpenCode Go) and the provider reports when it resets, wsb holds the turn and OpenCode retries it at that time, in the same session, with the same model. Nobody has to type "continue". The name stands for "we're so back".
 
 ## Install
 
-Run once in a terminal (OpenCode 2.3 or newer):
+Paste this into a coding agent:
+
+> Install the wsb plugin for my OpenCode user: run `opencode plugin add github:tsu-ld/wsb` and check that it loads.
+
+Or run once in a terminal (OpenCode 2.3 or newer):
 
 ```sh
-opencode plugin add git+https://github.com/tsu-ld/wsb.git#production
+opencode plugin add github:tsu-ld/wsb
 ```
-
-Or paste this into a coding agent:
-
-> Install the wsb plugin for my OpenCode user: run `opencode plugin add git+https://github.com/tsu-ld/wsb.git#production` and check that it loads.
 
 To uninstall, remove the wsb entry from `plugins` in the OpenCode config.
 
 ## How it works
 
-1. The provider refuses a request because the subscription usage limit is reached.
-2. wsb reads the exact reset time for that account and model: from the error itself, from the provider's usage endpoint (ChatGPT, OpenCode Go) or from the local Meridian proxy used by opencode-with-claude (Claude Max).
-3. It tells OpenCode's own retry to wait until that time and shows the remaining time above the prompt. If OpenCode restarts in between, the deadline is kept and the turn resumes on time.
-4. At the reset, OpenCode retries the same turn. No new session, no provider switch, no polling the model.
+1. The provider refuses a request because the subscription usage limit is reached. OpenCode shows it as a retry line. With OpenCode's claude-agent provider it looks like `Retrying in 1499s · attempt 2 · You've hit your 5-hour limit · resets 3:17am (Europe/London) Resets at 2026-11-25T03:17:00.000Z.`
+2. wsb reads the reset time for that account and model: here, the timestamp at the end of that refusal. It does not guess and it does not use a fixed timer.
+3. wsb tells OpenCode to retry at that time, through OpenCode's own retry, which is why OpenCode's line reads `Retrying in 1499s`, and shows one line above the prompt: `wsb · waiting for the reset · resumes 03:17 · in 24m 59s`. While it waits it makes zero model calls and it writes no prompt.
+4. At the reset, OpenCode retries the same turn. No new session, no new message, no provider switch.
 
-If the reset time is unknown, wsb leaves OpenCode's normal retry behaviour alone. A manual prompt or an interrupt always wins.
+wsb holds a turn only when it can read a reset time no more than 31 days away; otherwise it leaves OpenCode's normal retry behaviour alone. An interrupt (Esc) drops the hold. A message sent during the hold is queued: in a session that has not restarted, OpenCode still retries the held turn at the reset and then answers the new message (observed on OpenCode 2.3.2). A hold that was recovered after a managed-service restart is released when a message is sent. OpenCode bounds how many times it retries a turn, and wsb inherits that limit. If the provider refuses again and reports a new reset time, wsb can hold again while OpenCode has retries left. wsb is a plugin, not a daemon: it cannot wake OpenCode or start a turn by itself, so nothing resumes while OpenCode is not running. If OpenCode's managed service starts again and recovers the turn, wsb waits for what is left of the hold, or lets the turn continue if the reset has already passed. The saved deadline holds no prompt text and no credentials.
 
-## Supported subscriptions
+## Where the reset time comes from
 
-- Claude Max, through opencode-with-claude (Meridian proxy)
-- ChatGPT / Codex, signed in with OAuth
-- OpenCode Go (five-hour, weekly and monthly limits)
+- Claude Max through opencode-with-claude: the usage endpoint of the Meridian proxy OpenCode already uses (five-hour, weekly and per-model weekly windows; wsb takes the last one that blocks the model in use).
+- OpenCode's claude-agent provider (Claude Code): the refusal message itself, which ends with `Resets at <timestamp>`.
+- ChatGPT/Codex signed in with OAuth: the reset time in the error, otherwise ChatGPT's usage endpoint, called with the OAuth token of your OpenCode ChatGPT connection. The token is never stored.
+- OpenCode Go: the Go usage endpoint for the five-hour, weekly and monthly limits, called with the key OpenCode already holds for that request, otherwise the refusal.
 
 Metered OpenAI and Anthropic API keys are not supported.
 
+## Compared with other tools
+
+Checked at each source on 2026-11-24.
+
+- [Claude Code's own auto-continue](https://code.claude.com/docs/en/interactive-mode#wait-for-a-usage-limit-to-reset) (since Claude Code 2.1.234) is a feature of Claude Code's interactive sessions. The session has to stay open. Claude Code then prompts Claude to pick the task up where it stopped and does not resend the last message.
+- [Mte90/opencode-auto-resume](https://github.com/Mte90/opencode-auto-resume) is an OpenCode plugin that, by default, retries a rate-limited session on a ladder of cooldowns: 15 minutes, 30 minutes, 1 hour, then 2 hours.
+- [unsnooze](https://unsnooze.dev) is a daemon for eight AI coding CLIs. It parses the reset time from the banner text and types a resume message into the terminal pane. For OpenCode it only revives sessions whose process died during the wait.
+- [terryso/claude-auto-resume](https://github.com/terryso/claude-auto-resume) is a shell script for Claude Code. It detects the limit by running `claude -p 'check'` and then, by default, starts a new run with a prompt.
+- wsb is deliberately narrow: OpenCode only, subscriptions only, no metered API keys.
+
 ## FAQ
 
-- Does it bypass usage limits? No. It waits for the reset the provider reports.
-- Does it spend extra quota? No. It never sends a request before the reset.
-- Does it work with OpenCode 1.x? No, it targets OpenCode 2.3+.
+- Does it bypass my limit? No. wsb waits for the reset the provider reports, and then OpenCode retries. It does not add quota and it does not hide the limit.
+- Does waiting use quota? wsb makes zero model calls while it waits. At the reset OpenCode makes its ordinary retry of the same turn, and that retry uses quota like any other. wsb does not save quota.
+- What runs at the reset? The turn you already sent. wsb tells OpenCode to retry at the reset, through OpenCode's own retry, and has no code path that writes a prompt.
+- What does it send, and to whom? Never a prompt. To learn the reset time it may make usage requests with the credential OpenCode is already using for that provider: to the Meridian proxy for Claude Max, to ChatGPT's usage endpoint for Codex, to the OpenCode Go usage endpoint for Go. Nothing goes to Anthropic and no credential is stored. wsb does not make a third-party harness allowed: the provider's terms still apply.
+- Does it work with OpenCode 1.x? No, it targets OpenCode 2.3 or newer.
 
 ## Links
 
