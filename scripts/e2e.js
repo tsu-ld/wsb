@@ -20,7 +20,7 @@ async function eventually(read, description) {
   throw new Error(`Timed out: ${description}`)
 }
 
-const cases = ['go', 'claude', 'claude-agent', 'codex', 'restart', 'cancel', 'manual']
+const cases = ['go', 'claude', 'claude-agent', 'codex', 'restart', 'cancel', 'manual', 'install']
 const selected = process.argv[2] ? [process.argv[2]] : cases
 assert.ok(selected.every((item) => cases.includes(item)))
 
@@ -163,7 +163,8 @@ for (const scenario of selected) {
     if (!response.ok) {
       throw new Error(`${path}: ${response.status} ${await response.text()}`)
     }
-    return (await response.json()).data
+    const reply = await response.json()
+    return path.startsWith('/api/rpc/') ? reply.output : reply.data
   }
   const launch = () =>
     spawn(['opencode', 'serve', '--service', '--hostname', '127.0.0.1', '--port', String(port)], {
@@ -186,10 +187,27 @@ for (const scenario of selected) {
       ? resolve(process.env.QUOTA_RESUME_PLUGIN)
       : resolve(import.meta.dir, '..')
     await writeFile(join(config, 'service.json'), JSON.stringify({ password, port }))
+    const plugins = [entry]
+    if (scenario === 'install') {
+      const source = join(root, 'wsb')
+      const repo = `file://${resolve(import.meta.dir, '..')}`
+      const git = spawn(['git', 'clone', '-q', '--depth', '1', repo, source], { cwd: root, env })
+      assert.equal(await git.exited, 0, 'git clone')
+      const add = spawn(['opencode', 'plugin', 'add', `git+file://${source}`], {
+        cwd: root,
+        env,
+        stdout: 'pipe',
+        stderr: 'pipe',
+      })
+      const added = `${await new Response(add.stdout).text()}${await new Response(add.stderr).text()}`
+      assert.equal(await add.exited, 0, added)
+      plugins.splice(0, 1, ...JSON.parse(await file(join(config, 'opencode.json')).text()).plugins)
+      assert.deepEqual(plugins, [`git+file://${source}`], added)
+    }
     await writeFile(
       join(config, 'opencode.json'),
       JSON.stringify({
-        plugins: [entry],
+        plugins,
         model: `${model.providerID}/${model.id}`,
         providers: {
           [model.providerID]: {
@@ -242,6 +260,13 @@ for (const scenario of selected) {
     })
     await eventually(async () => (await turns()).length, 'first primary request')
     await sleep(350)
+    if (scenario === 'cancel' || scenario === 'manual') {
+      await sleep(2000)
+      await turns()
+      assert.equal(hits.length, 1, 'the plugin holds the turn')
+      const hold = await api('/api/rpc/wsb.hold/get', { input: { sessionID } }).catch(() => null)
+      assert.equal(hold?.sessionID, sessionID, 'the plugin holds the turn')
+    }
     if (scenario === 'restart') {
       service.kill('SIGKILL')
       await service.exited
