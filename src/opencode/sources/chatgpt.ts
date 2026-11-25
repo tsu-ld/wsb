@@ -1,3 +1,6 @@
+import { readFile } from 'node:fs/promises'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import { plausible } from '../../deadline.ts'
 import { inferenceRequest, parseRefusal, readUsage } from '../../vendors/chatgpt.ts'
 import { record, text } from '../../wire.ts'
@@ -29,6 +32,22 @@ const LIMIT_TYPE = 'provider.chatgpt-limit'
 const other = (reason: string): Reading => ({ kind: 'other', reason })
 const unknown = (reason: string): Reading => ({ kind: 'unknown', reason })
 
+type CodexLogin = Readonly<{ token: string; account: string }>
+
+async function readCodexLogin(): Promise<CodexLogin | undefined> {
+  const home = process.env['CODEX_HOME'] || join(homedir(), '.codex')
+  try {
+    const value: unknown = JSON.parse(await readFile(join(home, 'auth.json'), 'utf8'))
+    const auth = record(value)
+    const tokens = record(auth?.['tokens'])
+    const token = text(tokens?.['access_token'])
+    const account = text(tokens?.['account_id'])
+    return auth?.['auth_mode'] === 'chatgpt' && token && account ? { token, account } : undefined
+  } catch {
+    return undefined
+  }
+}
+
 export function bearerFrom(credential: unknown) {
   const oauth = record(credential)
   if (!oauth || oauth['type'] !== 'oauth') {
@@ -46,7 +65,12 @@ export function bearerFrom(credential: unknown) {
 export function chatgptSource({
   fetch = globalThis.fetch,
   connection,
-}: Readonly<{ fetch?: Fetch; connection?: () => ConnectionAPI | undefined }> = {}) {
+  codexLogin = readCodexLogin,
+}: Readonly<{
+  fetch?: Fetch
+  connection?: () => ConnectionAPI | undefined
+  codexLogin?: () => Promise<CodexLogin | undefined>
+}> = {}) {
   return {
     async atResponse(event: ResponseEvent, now: number): Promise<Reading> {
       if (event.kind !== 'primary') {
@@ -115,7 +139,15 @@ export function chatgptSource({
         return earlier
       }
       if (!refusal.account) {
-        return unknown('no account in the refusal')
+        if (auth.accountID) {
+          return unknown('no account in the refusal')
+        }
+        const codex = await codexLogin()
+        return codex
+          ? readUsage({ token: codex.token, account: codex.account, fetch, now })
+          : unknown(
+              'Sign in with ChatGPT gives no reset time; run `codex login` or reconnect OpenAI with Codex browser (legacy)',
+            )
       }
       return readUsage({ token: auth.access, account: refusal.account, fetch, now })
     },
