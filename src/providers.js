@@ -1,8 +1,8 @@
 import { claudeAgentReset } from './claude-agent.js'
-import { claudeReset } from './claude.js'
 import { codexReset, observeCodex } from './codex.js'
 import { plausible } from './deadline.ts'
 import { goAdapter } from './go-transport.js'
+import { meridianSource } from './opencode/sources/meridian.ts'
 
 const fromLegacy = (value) =>
   typeof value === 'number'
@@ -22,41 +22,14 @@ const legacy = ({ observe, resolve }) => ({
     ),
 })
 
+const adapt = (source) => ({
+  observe: (event) => source.atResponse(event, Date.now()),
+  resolve: (_ctx, event, now, earlier) => source.atError(event, earlier, now),
+})
+
 export function providers() {
   return {
-    anthropic: legacy({
-      async observe({ request, response, model, kind, sessionID }) {
-        if (
-          kind !== 'primary' ||
-          response.status !== 429 ||
-          request.headers.get('x-opencode-session') !== sessionID
-        ) {
-          return
-        }
-        const body = await response
-          .clone()
-          .json()
-          .catch(() => undefined)
-        if (
-          body?.error?.type !== 'rate_limit_error' ||
-          !/claude max rate limit reached/i.test(body.error.message)
-        ) {
-          return
-        }
-        return claudeReset(
-          {
-            providerID: 'anthropic',
-            modelID: model.id,
-            meridianBaseURL: request.url,
-            meridianKey: request.headers.get('x-api-key'),
-          },
-          { status: response.status, error: body.error },
-          Date.now(),
-        )
-      },
-      resolve: (_ctx, event, _now, observed) =>
-        event.error?.status === 429 ? observed : undefined,
-    }),
+    anthropic: adapt(meridianSource()),
     'claude-agent': legacy({ resolve: (_ctx, event, now) => claudeAgentReset(event, now) }),
     openai: legacy({ resolve: codexReset, observe: observeCodex }),
     'opencode-go': legacy(goAdapter()),
