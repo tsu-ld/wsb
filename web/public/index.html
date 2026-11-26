@@ -6,7 +6,7 @@
     <title>wsb: auto-resume OpenCode when your usage limit resets</title>
     <meta
       name="description"
-      content="OpenCode plugin. When your Claude, ChatGPT/Codex or OpenCode Go subscription hits its usage limit and reports when it resets, OpenCode retries the same turn then."
+      content="wsb is an OpenCode plugin. When your Claude, ChatGPT/Codex or OpenCode Go subscription hits its usage limit, it waits for the reset and OpenCode retries the same turn."
     />
     <meta name="theme-color" content="#0c0b0a" />
     <link rel="canonical" href="https://wsb.tsu.ar/" />
@@ -39,10 +39,13 @@
     <link rel="stylesheet" href="style.css" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="wsb" />
-    <meta property="og:title" content="Your limit resets at 03:17. OpenCode resumes at 03:17." />
+    <meta
+      property="og:title"
+      content="wsb waits for your usage limit to reset, then OpenCode retries the turn."
+    />
     <meta
       property="og:description"
-      content="OpenCode plugin. When your Claude, ChatGPT/Codex or OpenCode Go subscription hits its usage limit and reports when it resets, OpenCode retries the same turn then."
+      content="wsb is an OpenCode plugin. When your Claude, ChatGPT/Codex or OpenCode Go subscription hits its usage limit, it waits for the reset and OpenCode retries the same turn."
     />
     <meta property="og:url" content="https://wsb.tsu.ar/" />
     <meta property="og:image" content="https://wsb.tsu.ar/assets/social.png" />
@@ -50,18 +53,18 @@
     <meta property="og:image:height" content="640" />
     <meta
       property="og:image:alt"
-      content="wsb poster on black: the lines Your limit resets at and OpenCode resumes at over giant cream numerals 03:17. Five diagonal stripes run behind an OpenCode session whose wsb panel reads waiting for the reset, resumes 03:17, in 24m 59s."
+      content="wsb poster on black: the sentence wsb waits for your usage limit to reset, then OpenCode retries the turn, over giant cream numerals 03:17. Five diagonal stripes run behind an OpenCode session whose wsb panel reads waiting for the reset, resumes 03:17, in 24m 59s."
     />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="wsb: auto-resume OpenCode when your usage limit resets" />
     <meta
       name="twitter:description"
-      content="OpenCode plugin. When your Claude, ChatGPT/Codex or OpenCode Go subscription hits its usage limit and reports when it resets, OpenCode retries the same turn then."
+      content="wsb is an OpenCode plugin. When your Claude, ChatGPT/Codex or OpenCode Go subscription hits its usage limit, it waits for the reset and OpenCode retries the same turn."
     />
     <meta name="twitter:image" content="https://wsb.tsu.ar/assets/social.png" />
     <meta
       name="twitter:image:alt"
-      content="wsb poster: giant 03:17 under Your limit resets at, OpenCode resumes at, with five stripes running behind an OpenCode session held by wsb."
+      content="wsb poster: giant 03:17 under the sentence wsb waits for your usage limit to reset, then OpenCode retries the turn, with five stripes behind an OpenCode session held by wsb."
     />
     <link rel="alternate" type="text/markdown" title="wsb in Markdown" href="/index.md" />
     <link rel="describedby" type="text/markdown" href="/llms.txt" />
@@ -72,7 +75,7 @@
         "@type": "SoftwareApplication",
         "name": "wsb",
         "alternateName": "We’re So Back",
-        "description": "OpenCode plugin. When a subscription usage limit is hit and the provider reports when it resets, OpenCode retries the same turn at that time, in the same session with the same model. Works with Claude subscriptions (through opencode-with-claude or OpenCode’s claude-agent provider), ChatGPT/Codex and OpenCode Go.",
+        "description": "OpenCode plugin. When a subscription usage limit is hit, OpenCode retries the same turn at that time, in the same session with the same model. Works with Claude subscriptions (through opencode-with-claude or OpenCode’s claude-agent provider), ChatGPT/Codex and OpenCode Go.",
         "url": "https://wsb.tsu.ar/",
         "image": "https://wsb.tsu.ar/assets/social.png",
         "applicationCategory": "DeveloperApplication",
@@ -149,23 +152,18 @@
         <div class="board">
           <div class="pitch">
             <h1 class="claim">
-              <span class="l">Your limit resets at<span class="vh"> 03:17.</span></span>
-              <span class="l">OpenCode resumes at</span>
-              <span class="num">03:17</span><span class="vh">.</span>
+              wsb waits for your usage limit to reset, then OpenCode retries the turn.
             </h1>
-            <p class="lede">
-              wsb is an OpenCode plugin. When you hit your usage limit and your provider says when
-              it resets, wsb waits until then and OpenCode retries the same turn by itself.
-            </p>
+            <p class="num" aria-hidden="true">03:17</p>
 
             <p class="works">
               <span>Works with</span>
-              <a class="bm" href="#reset-time" data-p="claude" aria-label="Claude" data-tip="Claude"
+              <a class="bm" href="#setups" data-p="claude" aria-label="Claude" data-tip="Claude"
                 ><svg aria-hidden="true"><use href="#b-claude" /></svg
               ></a>
               <a
                 class="bm"
-                href="#reset-time"
+                href="#setups"
                 data-p="codex"
                 aria-label="ChatGPT and Codex"
                 data-tip="ChatGPT / Codex"
@@ -173,7 +171,7 @@
               ></a>
               <a
                 class="bm tall"
-                href="#reset-time"
+                href="#setups"
                 data-p="go"
                 aria-label="OpenCode Go"
                 data-tip="OpenCode Go"
@@ -265,7 +263,7 @@
                 role="img"
                 aria-label="The same OpenCode session during the wait. The composer is empty, OpenCode's retry line counts down and the wsb panel reads: waiting for the reset, resumes 03:17."
               >
-                <span class="flyer" hidden>03:17</span>
+                <span class="flyer" data-t="03:17" hidden>03:17</span>
                 <div class="t-title">
                   <i class="spin"><b></b><b></b><b></b><b></b><b></b><b></b></i
                   ><b>Refactor search index</b><span>+</span>
@@ -278,15 +276,18 @@
                     <path d="M8 1.6 15 14H1zM8 6.4v3.6M8 11.6v.7" /></svg
                   >Retrying in <span class="secs">1499</span>s · attempt 2 · You've hit your 5-hour
                   limit · resets 3:17am (Europe/London) Resets at
-                  <span class="nb">2026-11-25T<span class="src">03:17</span>:00.000Z.</span>
+                  <span class="nb"
+                    >2026-11-25T<span class="src" data-t="03:17">03:17</span>:00.000Z.</span
+                  >
                 </p>
                 <p class="t-done">Done. The index ranks by the new score and 128 tests pass.</p>
                 <p class="t-agent"><b>Build</b> · Claude Opus 5.5</p>
                 <p class="t-panel">
                   <span class="mark rise"><i></i><i></i><i></i></span><b>wsb</b> ·
                   <span class="p-wait"
-                    >waiting for the reset · resumes <span class="dst">03:17</span> · in
-                    <span class="left">24m 59s</span></span
+                    >waiting for the reset ·
+                    <span class="nb">resumes <span class="dst">03:17</span></span
+                    ><span class="later"> · in <span class="left">24m 59s</span></span></span
                   ><span class="p-go">resuming…</span>
                 </p>
                 <div class="t-composer">
@@ -331,70 +332,27 @@
         </div>
       </section>
 
-      <section class="said" aria-labelledby="said-h">
-        <h2 class="vh" id="said-h">The problem, in the words of an OpenCode user</h2>
-        <blockquote
-          class="quote"
-          cite="https://github.com/anomalyco/opencode/issues/43126#issuecomment-6139829604"
-        >
-          <p>
-            <span>after the reset</span> <span>I have to type</span>
-            <span
-              ><span class="strike">"continue"<i aria-hidden="true"></i></span
-            ></span>
-            <span>by hand.</span>
-          </p>
-        </blockquote>
-        <p class="by">
-          <svg aria-hidden="true"><use href="#i-github" /></svg>Israel-Kli in
-          <a
-            class="lk"
-            href="https://github.com/anomalyco/opencode/issues/43126#issuecomment-6139829604"
-            >anomalyco/opencode #43126<svg class="ic" aria-hidden="true"><use href="#i-out" /></svg
-          ></a>
-        </p>
-      </section>
-
-      <section class="facts" aria-labelledby="facts-h">
-        <h2 class="vh" id="facts-h">What wsb does</h2>
-        <ol class="rows">
+      <section class="wait" aria-labelledby="wait-h">
+        <h2 class="vh" id="wait-h">What happens when you hit the limit</h2>
+        <ol class="phases">
           <li>
-            <b>3:17</b>
+            <b class="when">02:52</b>
+            <h3>You hit the limit</h3>
             <p>
-              wsb waits until the time your provider gives for the reset. It doesn’t guess and it
-              doesn’t use a fixed timer.
+              Your provider refuses the request. wsb reads when the limit resets and tells OpenCode
+              to retry then.
             </p>
           </li>
           <li>
-            <b>0</b>
-            <p>It makes no model calls while it waits, so waiting doesn’t use your quota.</p>
+            <h3>wsb waits</h3>
+            <p>It makes no model calls while it waits, so waiting uses no quota.</p>
           </li>
           <li>
-            <b>1</b>
+            <b class="when">03:17</b>
+            <h3>OpenCode retries</h3>
             <p>
-              At the reset, OpenCode retries the turn you already sent, in the same session with the
-              same model.
-            </p>
-          </li>
-          <li>
-            <b class="marks" aria-hidden="true"
-              ><svg><use href="#b-claude" /></svg><svg><use href="#b-openai" /></svg
-              ><svg class="tall"><use href="#b-opencode" /></svg
-            ></b>
-            <p>
-              It works with Claude, ChatGPT/Codex and OpenCode Go subscriptions. Not with
-              pay-per-token API keys.
-            </p>
-          </li>
-          <li>
-            <b>MIT</b>
-            <p>
-              It’s open source. The code and its tests are on
-              <span class="nb"
-                ><a class="lk" href="https://github.com/tsu-ld/wsb"
-                  >GitHub<svg class="ic" aria-hidden="true"><use href="#i-out" /></svg></a
-                >.</span
-              >
+              It’s the turn you already sent, in the same session and with the same model. wsb never
+              writes a prompt.
             </p>
           </li>
         </ol>
@@ -403,8 +361,8 @@
       <section class="dawn" aria-labelledby="dawn-h">
         <h2 class="dawn-h" id="dawn-h">Install it and leave OpenCode open</h2>
         <p class="dawn-p">
-          The next time you hit your limit and your provider says when it resets, the turn continues
-          at that time. If OpenCode is closed by then, nothing resumes.
+          wsb runs inside OpenCode, so it can’t wake it. If OpenCode is closed at the reset, nothing
+          resumes; if the machine is asleep, the turn resumes late.
         </p>
         <section class="get" aria-label="Install wsb from here">
           <div class="get-bar">
@@ -472,7 +430,7 @@
           </p>
           <p class="vh" role="status"></p>
         </section>
-        <p class="dawn-n">It needs OpenCode 2.3 or newer.</p>
+        <p class="dawn-n">Needs OpenCode 2.3 or newer.</p>
         <svg class="sun" viewBox="0 0 1000 500" aria-hidden="true">
           <circle cx="500" cy="500" r="466" pathLength="2" />
           <circle cx="500" cy="500" r="388" pathLength="2" />
@@ -490,140 +448,57 @@
               <span>Does it bypass my limit?</span><i class="pm" aria-hidden="true"></i>
             </summary>
             <div class="a">
-              <p>
-                No. wsb waits for the reset your provider reports, and then OpenCode retries. It
-                does not add quota and it does not hide the limit.
-              </p>
+              <p>No. It only waits for the reset. Your provider’s terms still apply.</p>
             </div>
           </details>
-          <details>
+          <details id="setups">
             <summary>
-              <span>Does waiting use quota?</span><i class="pm" aria-hidden="true"></i>
-            </summary>
-            <div class="a">
-              <p>
-                wsb makes zero model calls while it waits. At the reset OpenCode makes its ordinary
-                retry of the same turn, and that retry uses quota like any other. wsb does not save
-                quota.
-              </p>
-            </div>
-          </details>
-          <details>
-            <summary>
-              <span>What runs at the reset?</span><i class="pm" aria-hidden="true"></i>
-            </summary>
-            <div class="a">
-              <p>
-                The turn you already sent. wsb tells OpenCode to retry at the reset, through
-                OpenCode’s own retry, and has no code path that writes a prompt. Press Esc and the
-                hold is gone. A message you send instead is queued: in a session that has not
-                restarted, OpenCode still retries the held turn at the reset and then answers the
-                new one.
-              </p>
-            </div>
-          </details>
-          <details id="reset-time">
-            <summary>
-              <span>Where does the reset time come from?</span><i class="pm" aria-hidden="true"></i>
+              <span>Which setups does it work with?</span><i class="pm" aria-hidden="true"></i>
             </summary>
             <div class="a">
               <p>
                 <span data-p="claude"
-                  >Claude through opencode-with-claude: the Meridian proxy OpenCode already uses.
-                  Claude through OpenCode’s claude-agent provider: the refusal itself, which ends
-                  with the reset timestamp.</span
+                  >Claude subscriptions, through opencode-with-claude or OpenCode’s claude-agent
+                  provider. If your Meridian proxy has more than one Claude profile, wsb can’t tell
+                  which one the turn used and doesn’t wait.</span
                 >
-                <span data-p="codex">ChatGPT/Codex: the error, or ChatGPT’s usage endpoint.</span>
-                <span data-p="go"
-                  >OpenCode Go: the Go usage endpoint for the five-hour, weekly and monthly limits,
-                  or the refusal.</span
+                <span data-p="codex"
+                  >ChatGPT/Codex signed in with OAuth. OpenCode’s “Sign in with ChatGPT” connection
+                  reports no reset time, so for it wsb reads the time from your Codex CLI login: run
+                  <code>codex login</code> with the same account.</span
                 >
-                If no reset time can be read, wsb leaves OpenCode’s normal retry alone.
+                <span data-p="go">OpenCode Go.</span>
+                Pay-per-token API keys aren’t supported. Whenever wsb can’t read a reset time, it
+                leaves OpenCode’s normal retry alone.
               </p>
             </div>
           </details>
           <details>
             <summary>
-              <span>Does OpenCode have to stay open?</span><i class="pm" aria-hidden="true"></i>
+              <span>Can I cancel the wait?</span><i class="pm" aria-hidden="true"></i>
             </summary>
             <div class="a">
               <p>
-                Yes. wsb is a plugin, not a daemon: it cannot wake OpenCode or start a turn by
-                itself, so nothing resumes while OpenCode is not running. If OpenCode’s managed
-                service starts again and recovers the turn, wsb waits for what is left of the hold,
-                or lets the turn continue if the reset has already passed. The saved deadline holds
-                no prompt and no credentials.
+                Press Esc. A message you send instead is queued: OpenCode still retries the held
+                turn at the reset, then answers the new one. If OpenCode restarted during the wait,
+                the message cancels the wait.
               </p>
             </div>
           </details>
           <details>
-            <summary>
-              <span>What does it send, and to whom?</span><i class="pm" aria-hidden="true"></i>
-            </summary>
+            <summary><span>What does it send?</span><i class="pm" aria-hidden="true"></i></summary>
             <div class="a">
               <p>
-                It never sends a prompt. To learn the reset time it may make usage requests with the
-                credential OpenCode is already using for that provider: to your Meridian proxy for
-                Claude, to ChatGPT’s usage endpoint for Codex, to the OpenCode Go usage endpoint for
-                Go. Nothing goes to Anthropic and no credential is stored. wsb does not make a
-                third-party harness allowed: your provider’s terms still apply.
+                Only what it takes to read the reset time: it may call a usage endpoint with a login
+                you already have (your Meridian proxy for Claude, ChatGPT for Codex, OpenCode Go for
+                Go). It stores no credentials.
               </p>
             </div>
           </details>
           <details>
-            <summary>
-              <span>How is it different from the others?</span><i class="pm" aria-hidden="true"></i>
-            </summary>
+            <summary><span>How do I remove it?</span><i class="pm" aria-hidden="true"></i></summary>
             <div class="a">
-              <p>
-                <a
-                  class="lk"
-                  href="https://code.claude.com/docs/en/interactive-mode#wait-for-a-usage-limit-to-reset"
-                  >Claude Code’s own auto-continue</a
-                >
-                is a feature of Claude Code’s interactive sessions.
-                <a class="lk" href="https://github.com/Mte90/opencode-auto-resume"
-                  >opencode-auto-resume</a
-                >
-                waits, by default, on a ladder of cooldowns: 15 minutes, 30 minutes, 1 hour, then 2
-                hours. <a class="lk" href="https://unsnooze.dev">unsnooze</a> is a daemon for eight
-                CLIs that types a resume message into the terminal; in OpenCode it only revives
-                sessions whose process died.
-                <a class="lk" href="https://github.com/terryso/claude-auto-resume"
-                  >claude-auto-resume</a
-                >
-                probes Claude with a prompt and then, by default, starts a new run. wsb works only
-                in OpenCode and only with subscriptions, not with metered API keys. Checked on
-                2026-11-24.
-              </p>
-            </div>
-          </details>
-          <details>
-            <summary>
-              <span>When does wsb step aside?</span><i class="pm" aria-hidden="true"></i>
-            </summary>
-            <div class="a">
-              <p>
-                wsb holds a turn only when it can read a reset time no more than 31 days away;
-                otherwise OpenCode’s normal retry runs as if wsb were not there. That includes a
-                Meridian proxy with more than one Claude profile, where wsb cannot tell which one
-                the turn used. Esc drops the hold. OpenCode bounds how many times it retries a turn,
-                and wsb inherits that limit. If the provider refuses again and reports a new reset
-                time, wsb can hold again while OpenCode has retries left.
-              </p>
-            </div>
-          </details>
-          <details>
-            <summary>
-              <span>What does it run on?</span><i class="pm" aria-hidden="true"></i>
-            </summary>
-            <div class="a">
-              <p>
-                OpenCode 2.3 or newer and one subscription: Claude (through opencode-with-claude or
-                OpenCode’s claude-agent provider), ChatGPT/Codex signed in with OAuth, or OpenCode
-                Go. To remove wsb, delete its entry from <code>plugins</code> in your OpenCode
-                config.
-              </p>
+              <p>Delete its entry from <code>plugins</code> in your OpenCode config.</p>
             </div>
           </details>
         </div>

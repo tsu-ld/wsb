@@ -4,7 +4,24 @@ const still = matchMedia('(prefers-reduced-motion: reduce)')
 const pad = (value) => String(value).padStart(2, '0')
 const clamp = (value) => Math.min(1, Math.max(0, value))
 const smooth = (value) => value * value * (3 - 2 * value)
-const SPRING = 'cubic-bezier(0.2, 0, 0, 1)'
+const out = (value) => 1 - (1 - clamp(value)) ** 3
+const EASE = 'cubic-bezier(0.2, 0, 0, 1)'
+
+function spring(duration, bounce) {
+  const omega = (2 * Math.PI) / duration
+  if (bounce <= 0) {
+    return (time) => 1 - Math.exp(-omega * time) * (1 + omega * time)
+  }
+  const damping = 1 - bounce
+  const decay = damping * omega
+  const ring = omega * Math.sqrt(1 - damping * damping)
+  return (time) =>
+    1 - Math.exp(-decay * time) * (Math.cos(ring * time) + (decay / ring) * Math.sin(ring * time))
+}
+
+const glideX = spring(0.5, 0)
+const glideY = spring(0.62, 0.2)
+const READ = { appear: 480, takeoff: 520, fade: 300, land: 1080, wipe: 180, tail: 200, hide: 1440 }
 
 const WAIT = 1499
 const BEATS = [
@@ -100,12 +117,8 @@ function view(beat, p) {
     return { beat, step: 0, left: WAIT }
   }
   if (beat === 'read') {
-    return {
-      beat,
-      step: p < 0.2 ? 0 : p < 0.6 ? 1 : 2,
-      left: WAIT,
-      fly: clamp((p - 0.2) / 0.4),
-    }
+    const ms = p * BEATS[2][1]
+    return { beat, step: ms < READ.takeoff ? 0 : ms < READ.land ? 1 : 2, left: WAIT, ms }
   }
   if (beat === 'hold') {
     return { beat, step: 0, left: Math.round(WAIT * (1 - smooth(smooth(p)))) }
@@ -145,6 +158,8 @@ if (hero) {
   const source = find('.src')
   const target = find('.dst')
   const flyer = find('.flyer')
+  const panel = find('.t-panel')
+  const later = find('.later')
   const play = find('.play')
   const stage = find('.stage')
   const cells = [...hero.querySelectorAll('.scan i')]
@@ -172,17 +187,29 @@ if (hero) {
     const box = tui.getBoundingClientRect()
     const from = source.getBoundingClientRect()
     const to = target.getBoundingClientRect()
-    path = {
-      x0: from.left - box.left,
-      y0: from.top - box.top,
-      x1: to.right - box.left - from.width,
-      y1: to.top - box.top,
-      lift: from.height * 1.1,
-    }
+    const x = box.left + tui.clientLeft
+    const y = box.top + tui.clientTop
+    path = { x0: from.left - x, y0: from.top - y, x1: to.left - x, y1: to.top - y }
   }
 
-  const fly = (progress) => {
-    if (progress <= 0 || progress >= 1) {
+  const fly = (ms) => {
+    const reading = ms >= 0
+    if (still.matches) {
+      source.style.setProperty('--hl', reading && ms < READ.appear ? '1' : '0')
+      panel.style.opacity = ''
+      later.style.opacity = reading && ms < READ.land ? '0' : ''
+      target.style.opacity = reading && ms < READ.land ? '0' : ''
+      flyer.hidden = true
+      path = undefined
+      return
+    }
+    source.style.setProperty('--hl', reading && ms < READ.appear ? out(ms / 140).toFixed(3) : '0')
+    panel.style.opacity =
+      reading && ms < READ.land ? out((ms - READ.takeoff) / READ.fade).toFixed(3) : ''
+    later.style.opacity =
+      reading && ms < READ.hide ? out((ms - READ.land) / READ.tail).toFixed(3) : ''
+    target.style.opacity = reading && ms < READ.hide ? '0' : ''
+    if (!reading || ms < READ.appear || ms >= READ.hide) {
       flyer.hidden = true
       path = undefined
       return
@@ -190,12 +217,15 @@ if (hero) {
     if (!path) {
       measure()
     }
-    const eased = smooth(progress)
-    const x = path.x0 + (path.x1 - path.x0) * eased
-    const y = path.y0 + (path.y1 - path.y0) * eased - Math.sin(Math.PI * progress) * path.lift
+    const time = Math.max(0, ms - READ.takeoff) / 1000
+    const along = glideX(time)
+    const x = path.x0 + (path.x1 - path.x0) * along
+    const y = path.y0 + (path.y1 - path.y0) * glideY(Math.max(0, time - 0.07))
+    const size = 1 + 0.1 * Math.sin(Math.PI * Math.min(1, time / 0.5))
     flyer.hidden = false
-    flyer.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`
-    flyer.classList.toggle('landing', progress > 0.55)
+    flyer.style.transform = `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px) scale(${size.toFixed(4)})`
+    flyer.style.setProperty('--mix', along.toFixed(3))
+    flyer.style.setProperty('--off', out((ms - READ.land) / READ.wipe).toFixed(3))
   }
 
   const busy = (clock) => {
@@ -225,7 +255,7 @@ if (hero) {
       short.textContent = compact(seconds)
       rise.style.setProperty('--rise', 1 + Math.floor((1 - seconds / WAIT) * 7))
     })
-    put('fly', state.fly ?? 0, fly)
+    put('fly', state.ms ?? -1, fly)
   }
 
   const label = () => {
@@ -503,7 +533,7 @@ function fold(item, open) {
   const motion = move(
     item,
     { height: [`${from}px`, `${to}px`] },
-    { duration: open ? 350 : 200, easing: open ? SPRING : 'ease-out' },
+    { duration: open ? 350 : 200, easing: open ? EASE : 'ease-out' },
   )
   folds.set(item, motion)
   motion.onfinish = () => {
