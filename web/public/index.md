@@ -1,30 +1,32 @@
 # wsb
 
-> Free, open-source OpenCode plugin that waits for a subscription quota reset and retries the same turn with the same model.
+> wsb is a free, open-source OpenCode plugin. It waits for your subscription's usage limit to reset, then OpenCode retries the same turn.
 
 ## Install
 
-Requires OpenCode 2.3 or newer:
+Needs OpenCode 2.3 or newer:
 
 ```sh
 opencode plugin add github:tsu-ld/wsb
 ```
 
-## Use wsb when
+## What happens at the limit
 
-- Claude Max, ChatGPT/Codex, or OpenCode Go reaches a subscription usage limit during an OpenCode turn.
-- You want OpenCode to resume automatically at the provider's reported reset time without sending a new session or switching models.
+1. Your provider refuses the request. wsb reads when the limit resets and tells OpenCode to retry then.
+2. wsb makes no model calls while it waits, so waiting uses no quota. Esc cancels it.
+3. At the reset OpenCode retries the turn you already sent, in the same session and with the same model. wsb never writes a prompt.
 
-## Behavior
+## Limits
 
-wsb reads the reset deadline, asks OpenCode's retry to wait, and preserves the deadline across restarts. A manual prompt or interrupt always wins. If the reset time is unknown, wsb leaves OpenCode's normal retry behavior unchanged.
-
-wsb does not bypass usage limits or send requests before the reset. Metered OpenAI and Anthropic API keys are not supported.
+- Works with Claude subscriptions (through opencode-with-claude or OpenCode's claude-agent provider), ChatGPT/Codex signed in with OAuth, and OpenCode Go. Pay-per-token API keys are not supported.
+- wsb runs inside OpenCode, so it cannot wake it. If OpenCode is closed at the reset, nothing resumes; if the machine is asleep, the turn resumes late.
+- Whenever wsb cannot read a reset time, it leaves OpenCode's normal retry alone.
+- It does not bypass the limit. Your provider's terms still apply.
 
 ## Links
 
 - [Full agent guide](/llms.txt): installation, supported subscriptions, behavior, and FAQ.
 - [ARD manifest](/.well-known/ard.json): machine-readable capabilities and representative queries for agent discovery.
-- [Source code](https://github.com/tsu-ld/wsb): MIT-licensed repository with tests.
+- [Source code](https://github.com/tsu-ld/wsb): MIT-licensed repository.
 
-Sources: wsb README.md; ARCHITECTURE.md; OpenCode plugin documentation; llms.txt v2; ARD publishing guide.
+Sources: wsb README.md; ARCHITECTURE.md; web/public/index.html.

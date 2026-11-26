@@ -6,7 +6,7 @@
       "displayName": "wsb",
       "type": "application/agent-plugins+gzip",
       "url": "https://github.com/tsu-ld/wsb/archive/refs/heads/production.tar.gz",
-      "description": "OpenCode plugin. When a subscription usage limit is hit and the provider reports when it resets, OpenCode retries the same turn at that time, in the same session with the same model. Supports Claude subscriptions (through opencode-with-claude or OpenCode's claude-agent provider), ChatGPT/Codex and OpenCode Go. Install: opencode plugin add github:tsu-ld/wsb",
+      "description": "OpenCode plugin. When a subscription usage limit is hit, wsb waits for the reset and OpenCode retries the same turn, in the same session with the same model. Supports Claude subscriptions (through opencode-with-claude or OpenCode's claude-agent provider), ChatGPT/Codex and OpenCode Go. Install: opencode plugin add github:tsu-ld/wsb",
       "capabilities": ["ResumeAfterUsageLimit", "WaitForQuotaReset"],
       "tags": [
         "opencode",
@@ -26,7 +26,7 @@
         "auto retry opencode when the opencode go quota resets"
       ],
       "version": "0.1.0",
-      "updatedAt": "2026-11-25T03:20:00Z"
+      "updatedAt": "2026-11-25T23:30:00Z"
     }
   ]
 }

@@ -1,6 +1,6 @@
 # wsb
 
-[![wsb: your limit resets at 03:17 and OpenCode resumes at 03:17](web/public/assets/social.png)](https://wsb.tsu.ar/)
+[![wsb waits for your usage limit to reset, then OpenCode retries the turn](web/public/assets/social.png)](https://wsb.tsu.ar/)
 
 OpenCode plugin. When your subscription hits its usage limit, it waits for the reset and retries the same turn.
 
