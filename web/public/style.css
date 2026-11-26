@@ -263,7 +263,7 @@ a {
 }
 
 .hero {
-  --fs-l: min(8.2vw, 54px);
+  --fs-l: min(7.5vw, 54px);
   --fs-n: min(calc((100vw - 32px) / 2.06), 340px);
   --fs-tui: clamp(10.5px, 2.9vw, 14px);
   --stripe: clamp(22px, 7vw, 44px);
@@ -333,17 +333,22 @@ a {
 }
 
 .claim {
-  max-width: 13.4em;
   margin: 14px 0 0;
   font: 400 var(--fs-l) / 1 var(--display);
   letter-spacing: 0.004em;
   text-transform: uppercase;
+}
+
+.claim .l {
+  display: block;
   text-wrap: balance;
 }
 
-.hero .num {
-  margin: 0.035em 0 0 -0.016em;
-  font: 400 var(--fs-n) / 0.88 var(--display);
+.claim .num {
+  display: block;
+  margin: 0.03em 0 0.045em -0.016em;
+  font-size: var(--fs-n);
+  line-height: 0.88;
   white-space: nowrap;
 }
 
@@ -1072,8 +1077,8 @@ html:not(.js) .play {
 @media (min-width: 1120px) and (min-height: 680px) {
   .hero {
     --u: min(100vw / 1440, 100svh / 900);
-    --fs-l: calc(var(--u) * 60);
-    --fs-n: calc(var(--u) * 330);
+    --fs-l: calc(var(--u) * 58);
+    --fs-n: calc(var(--u) * 340);
     --fs-tui: calc(var(--u) * 14);
     --stripe: calc(var(--u) * 50);
     --gap: calc(var(--u) * 8);
@@ -1122,8 +1127,8 @@ html:not(.js) .play {
     margin: 0;
   }
 
-  .hero .num {
-    margin: calc(var(--u) * 14) 0 0 calc(var(--u) * -5);
+  .claim .num {
+    margin: calc(var(--u) * 16) 0 calc(var(--u) * 16) calc(var(--u) * -5);
   }
 
   .works {
@@ -1192,9 +1197,9 @@ html:not(.js) .play {
 
 .wait {
   --gap: clamp(20px, 2.6vw, 40px);
-  --fs: clamp(84px, 13.4vw, 196px);
-  --band: clamp(48px, 6.6vw, 96px);
-  --dash: clamp(20px, 2.7vw, 38px);
+  --fs: clamp(48px, 5.6vw, 80px);
+  --band: clamp(120px, 15vw, 216px);
+  --dash: clamp(24px, 3.1vw, 44px);
   --period: calc(var(--dash) * 1.42);
   overflow: hidden;
   overflow: clip;
@@ -1213,7 +1218,8 @@ html:not(.js) .play {
 }
 
 .phases::before,
-.phases::after {
+.phases::after,
+.phases li:first-child::before {
   grid-row: 2;
   background: linear-gradient(
     180deg,
@@ -1232,17 +1238,19 @@ html:not(.js) .play {
 
 .phases::before {
   grid-column: 1 / 3;
-  margin: 0 calc(var(--dash) * 0.42 - var(--gap)) 0 calc(var(--pad) * -1);
-  mask:
-    linear-gradient(#000 0 0) 0 0 / var(--pad) 100% no-repeat,
-    repeating-linear-gradient(90deg, #000 0 var(--dash), transparent 0 var(--period))
-      calc(var(--pad) + var(--dash) * 0.42) 0 / 200vw 100% no-repeat;
+  margin-right: calc(var(--gap) * -1);
+  mask: linear-gradient(90deg, #000 70.42%, transparent 0) 0 0 / var(--period) 100% round no-repeat;
 }
 
 .phases::after {
   grid-column: 3;
   margin-right: calc(var(--pad) * -1);
   transform-origin: 0 50%;
+}
+
+.phases li:first-child::before {
+  width: calc(var(--pad) - var(--dash) * 0.42);
+  margin-left: calc(var(--pad) * -1);
 }
 
 .phases li {
@@ -1265,8 +1273,9 @@ html:not(.js) .play {
 
 .when {
   grid-row: 1;
-  margin: 0 0 clamp(16px, 2vw, 30px) -0.016em;
+  margin: 0 0 clamp(12px, 1.4vw, 20px) -0.016em;
   font: 400 var(--fs) / 0.84 var(--display);
+  text-transform: uppercase;
 }
 
 .phases h3 {
@@ -1288,7 +1297,7 @@ html:not(.js) .play {
 @media (max-width: 760px) {
   .wait {
     --rail: clamp(40px, 12vw, 56px);
-    --fs: clamp(64px, 19vw, 96px);
+    --fs: clamp(44px, 13vw, 60px);
     padding-top: 0;
     padding-bottom: 0;
   }
@@ -1319,15 +1328,17 @@ html:not(.js) .play {
   .phases::before {
     grid-row: 1 / 3;
     margin: 0;
-    mask:
-      linear-gradient(#000 0 0) 0 0 / 100% 36px no-repeat,
-      repeating-linear-gradient(180deg, #000 0 var(--dash), transparent 0 var(--period)) 0
-        calc(36px + var(--dash) * 0.42) / 100% calc(100% - 36px - var(--dash) * 0.84) no-repeat;
+    mask: linear-gradient(180deg, #000 70.42%, transparent 0) 0 0 / 100% var(--period) no-repeat
+      round;
   }
 
   .phases::after {
     grid-row: 3;
-    margin: -1px 0 0;
+    margin: 0;
+  }
+
+  .phases li:first-child::before {
+    content: none;
   }
 
   .phases li:nth-child(n) {
@@ -1954,11 +1965,13 @@ html:not(.js) .play {
 
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
-    @keyframes drift {
+    @keyframes draw {
       from {
-        mask-position:
-          0 0,
-          calc(var(--pad) + var(--dash) * 0.42 - var(--period) * 5) 0;
+        clip-path: inset(0 100% 0 0);
+      }
+
+      to {
+        clip-path: inset(0);
       }
     }
 
@@ -1970,14 +1983,14 @@ html:not(.js) .play {
 
     @media (min-width: 761px) {
       .phases::before {
-        animation: drift linear both;
-        animation-range: entry 0% exit 100%;
+        animation: draw linear both;
+        animation-range: entry 0% cover 30%;
         animation-timeline: view();
       }
 
       .phases::after {
         animation: back cubic-bezier(0.2, 0.7, 0.2, 1) both;
-        animation-range: entry 55% cover 42%;
+        animation-range: cover 30% cover 42%;
         animation-timeline: view();
       }
     }

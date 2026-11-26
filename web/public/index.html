@@ -41,7 +41,7 @@
     <meta property="og:site_name" content="wsb" />
     <meta
       property="og:title"
-      content="wsb waits for your usage limit to reset, then OpenCode retries the turn."
+      content="Your usage limit resets at 03:17. wsb waits until then, and OpenCode retries the turn."
     />
     <meta
       property="og:description"
@@ -53,7 +53,7 @@
     <meta property="og:image:height" content="640" />
     <meta
       property="og:image:alt"
-      content="wsb poster on black: the sentence wsb waits for your usage limit to reset, then OpenCode retries the turn, over giant cream numerals 03:17. Five diagonal stripes run behind an OpenCode session whose wsb panel reads waiting for the reset, resumes 03:17, in 24m 59s."
+      content="wsb poster on black: Your usage limit resets at, giant cream numerals 03:17, then wsb waits until then, and OpenCode retries the turn. Five diagonal stripes run behind an OpenCode session whose wsb panel reads waiting for the reset, resumes 03:17, in 24m 59s."
     />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="wsb: auto-resume OpenCode when your usage limit resets" />
@@ -64,7 +64,7 @@
     <meta name="twitter:image" content="https://wsb.tsu.ar/assets/social.png" />
     <meta
       name="twitter:image:alt"
-      content="wsb poster: giant 03:17 under the sentence wsb waits for your usage limit to reset, then OpenCode retries the turn, with five stripes behind an OpenCode session held by wsb."
+      content="wsb poster: Your usage limit resets at 03:17, wsb waits until then, and OpenCode retries the turn, with five stripes behind an OpenCode session held by wsb."
     />
     <link rel="alternate" type="text/markdown" title="wsb in Markdown" href="/index.md" />
     <link rel="describedby" type="text/markdown" href="/llms.txt" />
@@ -152,9 +152,10 @@
         <div class="board">
           <div class="pitch">
             <h1 class="claim">
-              wsb waits for your usage limit to reset, then OpenCode retries the turn.
+              <span class="l">Your usage limit resets at</span>
+              <span class="num">03:17</span><span class="vh">.</span>
+              <span class="l">wsb waits until then, and OpenCode retries the turn.</span>
             </h1>
-            <p class="num" aria-hidden="true">03:17</p>
 
             <p class="works">
               <span>Works with</span>
@@ -344,6 +345,7 @@
             </p>
           </li>
           <li>
+            <b class="when">24m 59s</b>
             <h3>wsb waits</h3>
             <p>It makes no model calls while it waits, so waiting uses no quota.</p>
           </li>
